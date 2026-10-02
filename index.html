@@ -1173,8 +1173,8 @@ $('bulk').onclick = () => {
 };
 
 /* ================= SUPABASE DB INTEGRATION ================= */
-const SUPABASE_URL = "";   // 예: "https://xxxx.supabase.co"
-const SUPABASE_KEY = "";   // 예: "eyJhbGciOi..."
+const SUPABASE_URL = "https://wuziepkcjotudyvlsymu.supabase.co";   // 예: "https://xxxx.supabase.co"
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1emllcGtjam90dWR5dmxzeW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTQ2MzMsImV4cCI6MjEwNjQ3MDYzM30.umqjGk2YOoj1jradqX0aMxo-eO2l9xCcNhKlYyMw8Oo";   // 예: "eyJhbGciOi..."
 const sb = (SUPABASE_URL && SUPABASE_KEY && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const hhmm = t => {

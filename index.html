@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GBSA 통합 리마인더</title>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#1c2433;--mute:#6b7689;--line:#e3e7ef;--pri:#2557d6;--pri-d:#1b44ab;--ok:#16a34a;--okb:#dcfce7;--warn:#d97706;--warnb:#fef3c7;--bad:#dc2626;--badb:#fee2e2;--side:#14213d}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Pretendard","Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+aside{width:236px;background:var(--side);color:#cfd8ea;padding:22px 14px;flex-shrink:0;position:sticky;top:0;height:100vh}
+.logo{font-weight:800;color:#fff;font-size:17px;padding:0 10px 4px}
+.logo small{display:block;font-weight:400;font-size:11px;color:#8ea0c4;margin-top:2px}
+nav{margin-top:26px;display:flex;flex-direction:column;gap:4px}
+nav button{all:unset;cursor:pointer;padding:11px 12px;border-radius:8px;font-size:14px;display:flex;gap:10px;align-items:center}
+nav button:hover{background:#1f2f55}
+nav button.on{background:var(--pri);color:#fff}
+nav .tag{margin-left:auto;font-size:10px;opacity:.7}
+main{flex:1;padding:28px 34px;min-width:0}
+h1{font-size:22px;margin:0 0 4px}.sub{color:var(--mute);font-size:13px;margin-bottom:22px}
+.tab{display:none;animation:f .25s}.tab.on{display:block}
+@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.grid{display:grid;gap:16px}.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:1fr 1fr}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card h3{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:8px}
+.kpi .n{font-size:28px;font-weight:800}.kpi .l{font-size:12px;color:var(--mute)}
+.bar{height:9px;background:#e8ecf4;border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--pri)}
+.bar i.r{background:var(--bad)}.bar i.g{background:var(--ok)}
+.row{display:flex;align-items:center;gap:12px;margin:11px 0;font-size:13px}
+.row b{width:74px;font-weight:600}.row .bar{flex:1}.row span{width:44px;text-align:right;color:var(--mute)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--mute);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.b-warn{background:var(--warnb);color:var(--warn)}.b-bad{background:var(--badb);color:var(--bad)}.b-ok{background:var(--okb);color:var(--ok)}
+.btn{border:0;background:var(--pri);color:#fff;padding:7px 13px;border-radius:7px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.btn:hover{background:var(--pri-d)}.btn.big{padding:10px 18px;font-size:14px;font-weight:600}
+.btn.out{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+.btn:disabled{background:#c5cbd8;cursor:default}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.head h3{margin:0}
+.info{background:#eef3ff;border:1px solid #d3e0ff;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:16px;line-height:1.7}
+.info b{color:var(--pri)}
+.reason{font-size:12px;color:var(--bad)}
+#toast{position:fixed;right:24px;bottom:24px;background:#1c2433;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;max-width:380px}
+#toast.show{opacity:1;transform:none}
+#login{position:fixed;inset:0;background:linear-gradient(135deg,#14213d,#2557d6);display:flex;align-items:center;justify-content:center;z-index:50}
+#login .box{background:#fff;border-radius:16px;padding:36px 34px;width:380px;max-width:92vw;text-align:center;box-shadow:0 20px 60px #0004}
+#login h2{margin:0 0 4px;font-size:22px}#login p{color:var(--mute);font-size:13px;margin:0 0 24px}
+#login .btn{display:block;width:100%;margin-top:10px;padding:13px;font-size:15px}
+#login .hint{font-size:11.5px;color:var(--mute);margin-top:18px}
+#app{display:none;flex:1;min-width:0}
+.top{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin:-8px 0 14px;font-size:13px}
+.top .role{background:#eef3ff;color:var(--pri);padding:5px 12px;border-radius:99px;font-weight:600}
+@media(max-width:900px){body{flex-direction:column}aside{width:100%;height:auto;position:static}nav{flex-direction:row;flex-wrap:wrap}.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}main{padding:18px}}
+</style>
+</head>
+<body>
+<div id="login"><div class="box">
+  <div style="font-size:34px">🔔</div>
+  <h2>GBSA 통합 리마인더</h2><p>근태 · 교육 수료 AI 자동 알림 시스템 (데모)</p>
+  <button class="btn big" onclick="login('admin')">🛡 관리자(Admin)로 로그인</button>
+  <button class="btn big out" onclick="login('user')">👤 일반직원(User)으로 로그인</button>
+  <div class="hint">테스트용 모의 로그인 · 별도 계정 입력 없음</div>
+</div></div>
+<div id="app">
+<aside>
+  <div class="logo">GBSA 통합 리마인더<small>Integrated Reminder · AI</small></div>
+  <nav id="nav"></nav>
+</aside>
+<main>
+<div class="top"><span class="role" id="who"></span><span id="welcome"></span><button class="btn out" onclick="logout()">로그아웃</button></div>
+
+<section class="tab on" id="dash">
+  <h1>대시보드 총괄</h1><div class="sub">A·B 모듈 처리 결과를 통합한 실시간 현황 (기준일: <span id="today"></span>)</div>
+  <div class="grid g4" id="kpis"></div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3>부서별 근태 이상 비율</h3><div id="deptAtt"></div></div>
+    <div class="card"><h3>부서별 교육 수료 진행률 <small style="color:var(--mute);font-weight:400">· 개인정보보호 교육</small></h3><div id="deptEdu"></div></div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <div class="head"><h3>🚨 지각 · 미인식자 실시간 리스트</h3></div>
+      <table><thead><tr><th>이름</th><th>부서</th><th>상태</th></tr></thead><tbody id="liveAtt"></tbody></table>
+    </div>
+    <div class="card">
+      <div class="head"><h3>📝 교육 미수료 · 미제출자</h3><button class="btn big" id="bulk">📨 원클릭 일괄 알림 전송</button></div>
+      <table><thead><tr><th>이름</th><th>부서</th><th>상태</th></tr></thead><tbody id="liveEdu"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section class="tab" id="att">
+  <h1>근태 알림 관리</h1><div class="sub">사내 그룹웨어/출입 게이트 로그 기반 이상 감지</div>
+  <div class="info"><b>AI 판별 규칙</b> · 09:00(유연근무자는 개인 출근 기준 시간) 출근 데이터 없음 ➔ <b>[미인식/지각]</b> · 퇴근 시간 이후 1분 시점까지 퇴근 데이터 없음 ➔ <b>[퇴근 미인식]</b></div>
+  <div class="card">
+    <table><thead><tr><th>이름</th><th>부서</th><th>기준 출근</th><th>출근 기록</th><th>퇴근 기록</th><th>상태</th><th style="text-align:right">알림</th></tr></thead><tbody id="attBody"></tbody></table>
+  </div>
+</section>
+
+<section class="tab" id="edu">
+  <h1>교육 수료 관리</h1><div class="sub">공문 OCR 엔티티와 제출 수료증 OCR 결과 교차 검증</div>
+  <div class="card" style="margin-bottom:16px">
+    <h3>📄 교육 수료 요구 공문 업로드 및 배포</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <input type="file" id="docFile" accept=".pdf,image/*" style="font-size:13px">
+      <button class="btn big" id="docBtn">수료 요구 공문 인식</button>
+    </div>
+  </div>
+  <div class="info" id="doc"></div>
+  <div class="card">
+    <table><thead><tr><th>임직원</th><th>수료증 교육명</th><th>수료 일시</th><th>이름 일치</th><th>교육명 일치</th><th>기한 내</th><th>결과</th><th style="text-align:right">조치</th></tr></thead><tbody id="eduBody"></tbody></table>
+  </div>
+</section>
+
+
+<section class="tab" id="myatt">
+  <h1>내 근태 현황</h1><div class="sub">본인의 출퇴근 기록과 상태만 표시됩니다</div>
+  <div class="card"><table><thead><tr><th>일자</th><th>출근</th><th>퇴근</th><th>상태</th><th style="text-align:right">조치</th></tr></thead><tbody id="myAttBody"></tbody></table></div>
+</section>
+
+<section class="tab" id="myedu">
+  <h1>내 교육 수료</h1><div class="sub">수강 대상 교육과 수료증 제출 현황</div>
+  <div class="card"><table><thead><tr><th>교육명</th><th>이수 기한</th><th>수료증 상태</th><th>비고</th></tr></thead><tbody id="myEduBody"></tbody></table></div>
+  <div class="card" style="margin-top:16px">
+    <h3>📤 교육 수료증 제출</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select id="courseSel" style="padding:8px;border:1px solid var(--line);border-radius:7px;font-family:inherit"></select>
+      <input type="file" id="file" accept=".pdf,image/*" style="font-size:13px">
+      <button class="btn big" id="submitCert">교육 수료증 제출 및 인식</button>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+<div id="toast"></div>
+
+<script>
+const TODAY="2026-10-02";
+document.getElementById('today').textContent=TODAY;
+
+/* ---------- Mock data ---------- */
+const DOC={name:"개인정보보호 교육",deadline:"2026-10-31",target:"전직원"};
+const emps=[
+ {n:"홍길동",d:"기획팀"},{n:"김민수",d:"기획팀"},{n:"이서연",d:"기획팀"},{n:"박지훈",d:"기획팀"},
+ {n:"최유진",d:"운영팀"},{n:"정태양",d:"운영팀"},{n:"강하늘",d:"운영팀"},
+ {n:"윤서아",d:"개발팀"},{n:"임도현",d:"개발팀"},{n:"한지민",d:"개발팀"},{n:"오세훈",d:"개발팀"},
+ {n:"송미래",d:"경영지원팀"},{n:"장우진",d:"경영지원팀"},{n:"배수빈",d:"경영지원팀"}
+];
+const att=[ // in/out '' = no record
+ {n:"홍길동",d:"기획팀",std:"09:00",in:"",out:"18:00"},
+ {n:"김민수",d:"기획팀",std:"09:00",in:"08:52",out:"18:03"},
+ {n:"이서연",d:"기획팀",std:"09:00",in:"08:58",out:""},
+ {n:"박지훈",d:"기획팀",std:"10:00",in:"09:55",out:"19:01"},
+ {n:"최유진",d:"운영팀",std:"09:00",in:"",out:""},
+ {n:"정태양",d:"운영팀",std:"09:00",in:"08:47",out:"18:00"},
+ {n:"강하늘",d:"운영팀",std:"09:00",in:"08:59",out:"18:10"},
+ {n:"윤서아",d:"개발팀",std:"09:00",in:"08:40",out:"18:20"},
+ {n:"임도현",d:"개발팀",std:"09:00",in:"",out:"18:05"},
+ {n:"한지민",d:"개발팀",std:"09:00",in:"08:55",out:""},
+ {n:"오세훈",d:"개발팀",std:"09:00",in:"08:49",out:"18:15"},
+ {n:"송미래",d:"경영지원팀",std:"09:00",in:"08:57",out:"18:00"},
+ {n:"장우진",d:"경영지원팀",std:"09:00",in:"08:51",out:"18:02"},
+ {n:"배수빈",d:"경영지원팀",std:"09:00",in:"08:44",out:"18:01"}
+];
+function attStatus(a){const s=[];if(!a.in)s.push("미인식/지각");if(!a.out)s.push("퇴근 미인식");return s}
+
+const certs=[ // submitted certificates (OCR result)
+ {n:"홍길동",course:"개인정보보호 교육",at:"2026-09-28 14:20"},
+ {n:"김민수",course:"개인정보보호 교육",at:"2026-09-29 10:05"},
+ {n:"이서연",course:"정보보안 기초",at:"2026-09-30 16:40"},
+ {n:"최유진",course:"개인정보보호 교육",at:"2026-11-03 09:10"},
+ {n:"정태양",course:"개인정보보호 교육",at:"2026-09-25 13:00"},
+ {n:"윤서아",course:"개인정보보호 교육",at:"2026-09-27 11:30"},
+ {n:"임도현",course:"개인정보 보호교육",at:"2026-09-30 15:00"},
+ {n:"오세훈",course:"개인정보보호 교육",at:"2026-10-01 09:45"},
+ {n:"송미래",course:"개인정보보호 교육",at:"2026-09-26 17:10"},
+ {n:"장우진",course:"개인정보보호 교육",at:"2026-09-29 14:50"},
+ {n:"홍길동 ",nameOnCert:"홍길순",course:"",at:""} // placeholder removed below
+].filter(c=>c.course);
+certs.push({n:"박지훈",nameOnCert:"박지원",course:"개인정보보호 교육",at:"2026-09-30 10:20"});
+
+function validate(c){
+  const nameOk=(c.nameOnCert||c.n)===c.n;
+  const courseOk=c.course===DOC.name;
+  const dateOk=c.at.slice(0,10)<=DOC.deadline;
+  const reasons=[];
+  if(!nameOk)reasons.push(`이름 불일치(${c.nameOnCert})`);
+  if(!courseOk)reasons.push(`교육명 불일치(${c.course})`);
+  if(!dateOk)reasons.push(`이수 기한 초과(${c.at.slice(0,10)})`);
+  return {nameOk,courseOk,dateOk,pass:!reasons.length,reason:reasons.join(", ")};
+}
+const WAIT=["오세훈","송미래","장우진","박지훈"];
+const results=certs.map(c=>{const v=validate(c);return {...c,...v,state:WAIT.includes(c.n)?"wait":(v.pass?"pass":"fail")}});
+function eduState(name){
+  const r=results.find(x=>x.n===name);
+  if(!r)return {k:"none",label:"미제출"};
+  if(r.state==="wait")return {k:"wait",label:"검증 대기"};
+  return r.state==="pass"?{k:"ok",label:"수료 완료"}:{k:"bad",label:"반려"};
+}
+
+/* ---------- Helpers ---------- */
+const $=id=>document.getElementById(id);
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+const depts=[...new Set(emps.map(e=>e.d))];
+
+/* ---------- Dashboard ---------- */
+function renderDash(){
+  const abn=att.filter(a=>attStatus(a).length);
+  const done=emps.filter(e=>eduState(e.n).k==="ok").length;
+  const rej=emps.filter(e=>eduState(e.n).k==="bad").length;
+  const none=emps.length-done-rej;
+  $('kpis').innerHTML=[
+   ["전체 임직원",emps.length+"명","금일 근태·교육 대상"],
+   ["근태 이상",abn.length+"명",pct(abn.length,emps.length)+"% · 지각/퇴근 미인식"],
+   ["교육 수료율",pct(done,emps.length)+"%",done+"/"+emps.length+"명 수료 완료"],
+   ["반려 · 미제출",(rej+none)+"명","반려 "+rej+" · 미제출 "+none]
+  ].map(k=>`<div class="card kpi"><div class="l">${k[0]}</div><div class="n">${k[1]}</div><div class="l">${k[2]}</div></div>`).join("");
+
+  $('deptAtt').innerHTML=depts.map(d=>{
+    const all=att.filter(a=>a.d===d),ab=all.filter(a=>attStatus(a).length).length,p=pct(ab,all.length);
+    return `<div class="row"><b>${d}</b><div class="bar"><i class="${p>=40?'r':''}" style="width:${p}%"></i></div><span>${p}%</span></div>`}).join("");
+  $('deptEdu').innerHTML=depts.map(d=>{
+    const all=emps.filter(e=>e.d===d),ok=all.filter(e=>eduState(e.n).k==="ok").length,p=pct(ok,all.length);
+    return `<div class="row"><b>${d}</b><div class="bar"><i class="g" style="width:${p}%"></i></div><span>${p}%</span></div>`}).join("");
+
+  $('liveAtt').innerHTML=abn.map(a=>`<tr><td>${a.n}</td><td>${a.d}</td><td>${attStatus(a).map(s=>`<span class="badge ${s==='퇴근 미인식'?'b-warn':'b-bad'}">[${s}]</span>`).join(" ")}</td></tr>`).join("");
+  const pend=emps.filter(e=>eduState(e.n).k!=="ok");
+  $('liveEdu').innerHTML=pend.map(e=>{const s=eduState(e.n);return `<tr><td>${e.n}</td><td>${e.d}</td><td><span class="badge ${s.k==='bad'?'b-bad':'b-warn'}">${s.label}</span></td></tr>`}).join("");
+  $('bulk').disabled=!pend.length;
+}
+$('bulk').onclick=()=>{
+  const n=emps.filter(e=>eduState(e.n).k!=="ok").length;
+  toast(`📨 미수료자 ${n}명에게 "${DOC.name}" 리마인드 알림을 일괄 발송했습니다.`);
+};
+
+/* ---------- Attendance ---------- */
+function renderAtt(){
+  const rows=att.filter(a=>attStatus(a).length);
+  $('attBody').innerHTML=rows.map(a=>{
+    const st=attStatus(a);
+    return `<tr><td>${a.n}</td><td>${a.d}</td><td>${a.std}</td><td>${a.in||'<span class="reason">기록 없음</span>'}</td><td>${a.out||'<span class="reason">기록 없음</span>'}</td>
+    <td>${st.map(s=>`<span class="badge ${s==='퇴근 미인식'?'b-warn':'b-bad'}">[${s}]</span>`).join(" ")}</td>
+    <td style="text-align:right"><button class="btn" data-n="${a.n}" data-s="${st.join('|')}">✉ 소명 요청 발송</button></td></tr>`}).join("");
+  $('attBody').onclick=e=>{
+    const b=e.target.closest('button');if(!b)return;
+    const miss=b.dataset.s.includes("미인식/지각");
+    alert(miss?`${b.dataset.n}님, 금일 출근 기록이 확인되지 않습니다. 사유를 등록해주세요.`
+              :`${b.dataset.n}님, 금일 퇴근 기록이 확인되지 않습니다. 사유를 등록하거나 기록 수정을 요청해주세요.`);
+    b.textContent="✔ 발송 완료";b.disabled=true;
+  };
+}
+
+/* ---------- Education ---------- */
+function renderEdu(){
+  $('doc').innerHTML=`<b>공문 OCR 추출 엔티티</b> · 교육명: <b>${DOC.name}</b> · 이수 기한: <b>${DOC.deadline}</b> · 대상자: <b>${DOC.target}</b>`;
+  const mark=(r,ok)=>r.state==="wait"||r.state==="scan"?'<span style="color:var(--mute)">-</span>':ok?'<span style="color:var(--ok)">✔</span>':'<span style="color:var(--bad)">✘</span>';
+  $('eduBody').innerHTML=results.map((r,i)=>{
+    let res,act;
+    if(r.state==="wait"){res='<span class="badge b-warn">대기중</span>';act=`<button class="btn" data-a="scan" data-i="${i}">🔍 교육 수료증 인식</button>`}
+    else if(r.state==="scan"){res='<span class="badge b-warn">⏳ AI 스캔 중…</span>';act='<button class="btn" disabled>스캔 중</button>'}
+    else if(r.state==="pass"){res='<span class="badge b-ok">[Pass] 승인 완료</span>';act='<span style="color:var(--mute)">-</span>'}
+    else{res=`<span class="badge b-bad">[Fail] 반려</span><div class="reason">${r.reason}</div>`;act=r.sent?'<span class="badge b-ok">발송 완료</span>':`<button class="btn out" data-a="notify" data-i="${i}">↩ 재제출 요망 알림 발송</button>`}
+    return `<tr><td>${r.nameOnCert||r.n}</td><td>${r.course}</td><td>${r.at}</td><td>${mark(r,r.nameOk)}</td><td>${mark(r,r.courseOk)}</td><td>${mark(r,r.dateOk)}</td><td>${res}</td><td style="text-align:right">${act}</td></tr>`}).join("");
+}
+$('eduBody').onclick=e=>{
+  const b=e.target.closest('button');if(!b||b.disabled)return;
+  const r=results[+b.dataset.i];
+  if(b.dataset.a==="scan"){
+    r.state="scan";renderEdu();
+    setTimeout(()=>{r.state=r.pass?"pass":"fail";renderEdu();renderDash();
+      toast(r.pass?`${r.n}님 수료증 승인 완료`:`${r.n}님 수료증 반려: ${r.reason}`)},1600);
+  }else{
+    r.sent=true;renderEdu();toast(`${r.n}님에게 "재제출 요망(${r.reason})" 알림을 발송했습니다.`);
+  }
+};
+$('docBtn').onclick=()=>{
+  if(!$('docFile').files.length){alert("먼저 수료 요구 공문 파일(PDF/이미지)을 첨부해주세요.");return}
+  alert("AI OCR로 공문(교육명, 대상자, 기한) 인식이 완료되어 해당 부서원들에게 교육 수강 요청 알림이 발송되었습니다.");
+};
+
+/* ---------- Education: my view ---------- */
+const ME={n:"홍길동",d:"기획팀"};
+const myAtt=[
+ {date:"2026-10-02",in:"",out:"18:00"},
+ {date:"2026-10-01",in:"08:50",out:"18:04"},
+ {date:"2026-09-30",in:"09:12",out:"18:30"},
+ {date:"2026-09-29",in:"08:47",out:""},
+ {date:"2026-09-28",in:"08:55",out:"18:02"}
+];
+const myEdu=[
+ {name:"개인정보보호 교육",deadline:"2026-10-31",state:"ok",note:"2026-09-28 제출 · 승인"},
+ {name:"정보보안 기초",deadline:"2026-10-15",state:"none",note:"수료증 제출 필요"},
+ {name:"직장 내 괴롭힘 예방교육",deadline:"2026-11-15",state:"bad",note:"반려: 수료 날짜 판독 불가, 재제출 요망"}
+];
+const excused={};
+function myStatus(a){
+  const s=[];
+  if(!a.in)s.push(["미인식/지각","b-bad"]);
+  else if(a.in>"09:00")s.push(["지각","b-bad"]);
+  if(!a.out)s.push(["퇴근 미인식","b-warn"]);
+  return s.length?s:[["정상","b-ok"]];
+}
+function renderMyAtt(){
+  $('myAttBody').innerHTML=myAtt.map((a,i)=>{
+    const st=myStatus(a),bad=st[0][0]!=="정상";
+    return `<tr><td>${a.date}</td><td>${a.in||'<span class="reason">기록 없음</span>'}</td><td>${a.out||'<span class="reason">기록 없음</span>'}</td>
+    <td>${st.map(x=>`<span class="badge ${x[1]}">${bad?'['+x[0]+']':x[0]}</span>`).join(" ")}</td>
+    <td style="text-align:right">${!bad?'-':excused[i]?`<span class="badge b-ok">소명 접수</span><div class="reason" style="color:var(--mute)">${excused[i]}</div>`:`<button class="btn" data-i="${i}">📝 사유 등록(소명)</button>`}</td></tr>`}).join("");
+}
+$('myAttBody').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const r=prompt("사유를 입력해주세요. (예: 외근, 단말기 오류)");
+  if(r&&r.trim()){excused[b.dataset.i]=r.trim();renderMyAtt();toast("소명 사유가 담당자에게 전달되었습니다.")}
+};
+const BADGE={ok:["b-ok","승인 완료"],bad:["b-bad","반려"],none:["b-warn","미제출"],review:["b-warn","AI 인식·검증 대기"]};
+function renderMyEdu(){
+  $('myEduBody').innerHTML=myEdu.map(e=>{const b=BADGE[e.state];
+    return `<tr><td>${e.name}</td><td>${e.deadline}</td><td><span class="badge ${b[0]}">${b[1]}</span></td><td>${e.note}</td></tr>`}).join("");
+  const opts=myEdu.map((e,i)=>e.state==="ok"||e.state==="review"?"":`<option value="${i}">${e.name}</option>`).join("");
+  $('courseSel').innerHTML=opts||'<option value="">제출할 교육 없음</option>';
+}
+$('submitCert').onclick=()=>{
+  const sel=$('courseSel').value;
+  if(sel===""){alert("제출할 교육이 없습니다.");return}
+  if(!$('file').files.length){alert("수료증 파일(PDF/이미지)을 먼저 첨부해주세요.");return}
+  const e=myEdu[+sel];e.state="review";e.note=TODAY+" 제출 · 관리자 검증 대기";
+  $('file').value="";renderMyEdu();
+  alert("수료증이 성공적으로 제출되었으며, AI 인식 및 관리자 검증 대기 중입니다.");
+};
+
+/* ---------- Auth / Tabs ---------- */
+const MENUS={
+  admin:[["dash","📊 대시보드 총괄","C"],["att","⏰ 근태 알림 관리","A"],["edu","🎓 교육 수료 관리","B"]],
+  user:[["myatt","⏰ 내 근태 현황",""],["myedu","🎓 내 교육 수료",""]]
+};
+function showTab(id){
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===id));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id===id));
+}
+function login(role){
+  $('login').style.display="none";$('app').style.display="flex";
+  $('who').textContent=role==="admin"?"관리자":"일반직원";
+  $('welcome').textContent=role==="admin"?"관리자님 환영합니다":"일반직원님 환영합니다";
+  $('nav').innerHTML=MENUS[role].map(m=>`<button data-t="${m[0]}">${m[1]}<span class="tag">${m[2]}</span></button>`).join("");
+  $('nav').querySelectorAll('button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+  showTab(MENUS[role][0][0]);
+}
+function logout(){$('app').style.display="none";$('login').style.display="flex"}
+renderDash();renderAtt();renderEdu();renderMyAtt();renderMyEdu();
+</script>
+</body>
+</html>

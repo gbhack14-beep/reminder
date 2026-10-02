@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GBSA 통합 리마인더</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#f4f6fa;--card:#fff;--ink:#1c2433;--mute:#6b7689;--line:#e3e7ef;--pri:#2557d6;--pri-d:#1b44ab;--ok:#16a34a;--okb:#dcfce7;--warn:#d97706;--warnb:#fef3c7;--bad:#dc2626;--badb:#fee2e2;--side:#14213d}
 *{box-sizing:border-box}
@@ -71,7 +72,7 @@ tr:last-child td{border-bottom:0}
   <nav id="nav"></nav>
 </aside>
 <main>
-<div class="top"><span class="role" id="who"></span><span id="welcome"></span><button class="btn out" onclick="logout()">로그아웃</button></div>
+<div class="top"><span id="dataSrc" style="margin-right:auto;font-size:12px"></span><span class="role" id="who"></span><span id="welcome"></span><button class="btn out" onclick="logout()">로그아웃</button></div>
 
 <section class="tab on" id="dash">
   <h1>대시보드 총괄</h1><div class="sub">A·B 모듈 처리 결과를 통합한 실시간 현황 (기준일: <span id="today"></span>)</div>
@@ -96,7 +97,7 @@ tr:last-child td{border-bottom:0}
   <h1>근태 알림 관리</h1><div class="sub">사내 그룹웨어/출입 게이트 로그 기반 이상 감지</div>
   <div class="info"><b>AI 판별 규칙</b> · 09:00(유연근무자는 개인 출근 기준 시간) 출근 데이터 없음 ➔ <b>[미인식/지각]</b> · 퇴근 시간 이후 1분 시점까지 퇴근 데이터 없음 ➔ <b>[퇴근 미인식]</b></div>
   <div class="card">
-    <table><thead><tr><th>이름</th><th>부서</th><th>기준 출근</th><th>출근 기록</th><th>퇴근 기록</th><th>상태</th><th style="text-align:right">알림</th></tr></thead><tbody id="attBody"></tbody></table>
+    <table><thead><tr><th>일자</th><th>이름</th><th>부서</th><th>기준 출근</th><th>출근 기록</th><th>퇴근 기록</th><th>상태</th><th style="text-align:right">알림</th></tr></thead><tbody id="attBody"></tbody></table>
   </div>
 </section>
 
@@ -150,7 +151,7 @@ const emps=[
  {n:"윤서아",d:"개발팀"},{n:"임도현",d:"개발팀"},{n:"한지민",d:"개발팀"},{n:"오세훈",d:"개발팀"},
  {n:"송미래",d:"경영지원팀"},{n:"장우진",d:"경영지원팀"},{n:"배수빈",d:"경영지원팀"}
 ];
-const att=[ // in/out '' = no record
+let att=[ // in/out '' = no record
  {n:"홍길동",d:"기획팀",std:"09:00",in:"",out:"18:00"},
  {n:"김민수",d:"기획팀",std:"09:00",in:"08:52",out:"18:03"},
  {n:"이서연",d:"기획팀",std:"09:00",in:"08:58",out:""},
@@ -166,7 +167,7 @@ const att=[ // in/out '' = no record
  {n:"장우진",d:"경영지원팀",std:"09:00",in:"08:51",out:"18:02"},
  {n:"배수빈",d:"경영지원팀",std:"09:00",in:"08:44",out:"18:01"}
 ];
-function attStatus(a){const s=[];if(!a.in)s.push("미인식/지각");if(!a.out)s.push("퇴근 미인식");return s}
+function attStatus(a){const s=[];if(!a.in)s.push("미인식/지각");else if(a.in>a.std)s.push("지각");if(!a.out)s.push("퇴근 미인식");return s}
 
 const certs=[ // submitted certificates (OCR result)
  {n:"홍길동",course:"개인정보보호 교육",at:"2026-09-28 14:20"},
@@ -215,20 +216,20 @@ function renderDash(){
   const rej=emps.filter(e=>eduState(e.n).k==="bad").length;
   const none=emps.length-done-rej;
   $('kpis').innerHTML=[
-   ["전체 임직원",emps.length+"명","금일 근태·교육 대상"],
-   ["근태 이상",abn.length+"명",pct(abn.length,emps.length)+"% · 지각/퇴근 미인식"],
+   ["전체 임직원",new Set(att.map(a=>a.n)).size+"명","근태·교육 대상"],
+   ["근태 이상",abn.length+"건",pct(abn.length,att.length)+"% · 지각/미인식/퇴근 미인식"],
    ["교육 수료율",pct(done,emps.length)+"%",done+"/"+emps.length+"명 수료 완료"],
    ["반려 · 미제출",(rej+none)+"명","반려 "+rej+" · 미제출 "+none]
   ].map(k=>`<div class="card kpi"><div class="l">${k[0]}</div><div class="n">${k[1]}</div><div class="l">${k[2]}</div></div>`).join("");
 
-  $('deptAtt').innerHTML=depts.map(d=>{
+  $('deptAtt').innerHTML=[...new Set(att.map(a=>a.d))].map(d=>{
     const all=att.filter(a=>a.d===d),ab=all.filter(a=>attStatus(a).length).length,p=pct(ab,all.length);
     return `<div class="row"><b>${d}</b><div class="bar"><i class="${p>=40?'r':''}" style="width:${p}%"></i></div><span>${p}%</span></div>`}).join("");
   $('deptEdu').innerHTML=depts.map(d=>{
     const all=emps.filter(e=>e.d===d),ok=all.filter(e=>eduState(e.n).k==="ok").length,p=pct(ok,all.length);
     return `<div class="row"><b>${d}</b><div class="bar"><i class="g" style="width:${p}%"></i></div><span>${p}%</span></div>`}).join("");
 
-  $('liveAtt').innerHTML=abn.map(a=>`<tr><td>${a.n}</td><td>${a.d}</td><td>${attStatus(a).map(s=>`<span class="badge ${s==='퇴근 미인식'?'b-warn':'b-bad'}">[${s}]</span>`).join(" ")}</td></tr>`).join("");
+  $('liveAtt').innerHTML=abn.slice(-8).reverse().map(a=>`<tr><td>${a.n} <small style="color:var(--mute)">${(a.date||TODAY).slice(5)}</small></td><td>${a.d}</td><td>${attStatus(a).map(s=>`<span class="badge ${s==='퇴근 미인식'?'b-warn':'b-bad'}">[${s}]</span>`).join(" ")}</td></tr>`).join("");
   const pend=emps.filter(e=>eduState(e.n).k!=="ok");
   $('liveEdu').innerHTML=pend.map(e=>{const s=eduState(e.n);return `<tr><td>${e.n}</td><td>${e.d}</td><td><span class="badge ${s.k==='bad'?'b-bad':'b-warn'}">${s.label}</span></td></tr>`}).join("");
   $('bulk').disabled=!pend.length;
@@ -243,14 +244,15 @@ function renderAtt(){
   const rows=att.filter(a=>attStatus(a).length);
   $('attBody').innerHTML=rows.map(a=>{
     const st=attStatus(a);
-    return `<tr><td>${a.n}</td><td>${a.d}</td><td>${a.std}</td><td>${a.in||'<span class="reason">기록 없음</span>'}</td><td>${a.out||'<span class="reason">기록 없음</span>'}</td>
+    return `<tr><td>${a.date||TODAY}</td><td>${a.n}</td><td>${a.d}</td><td>${a.std}</td><td>${a.in||'<span class="reason">기록 없음</span>'}</td><td>${a.out||'<span class="reason">기록 없음</span>'}</td>
     <td>${st.map(s=>`<span class="badge ${s==='퇴근 미인식'?'b-warn':'b-bad'}">[${s}]</span>`).join(" ")}</td>
-    <td style="text-align:right"><button class="btn" data-n="${a.n}" data-s="${st.join('|')}">✉ 소명 요청 발송</button></td></tr>`}).join("");
+    <td style="text-align:right"><button class="btn" data-n="${a.n}" data-date="${a.date||TODAY}" data-s="${st.join('|')}">✉ 소명 요청 발송</button></td></tr>`}).join("");
   $('attBody').onclick=e=>{
     const b=e.target.closest('button');if(!b)return;
-    const miss=b.dataset.s.includes("미인식/지각");
-    alert(miss?`${b.dataset.n}님, 금일 출근 기록이 확인되지 않습니다. 사유를 등록해주세요.`
-              :`${b.dataset.n}님, 금일 퇴근 기록이 확인되지 않습니다. 사유를 등록하거나 기록 수정을 요청해주세요.`);
+    const st=b.dataset.s,d=b.dataset.date===TODAY?"금일":b.dataset.date;
+    alert(st.includes("미인식/지각")?`${b.dataset.n}님, ${d} 출근 기록이 확인되지 않습니다. 사유를 등록해주세요.`
+         :st.includes("지각")?`${b.dataset.n}님, ${d} 출근이 기준 시간보다 늦게 기록되었습니다. 사유를 등록해주세요.`
+         :`${b.dataset.n}님, ${d} 퇴근 기록이 확인되지 않습니다. 사유를 등록하거나 기록 수정을 요청해주세요.`);
     b.textContent="✔ 발송 완료";b.disabled=true;
   };
 }
@@ -285,7 +287,7 @@ $('docBtn').onclick=()=>{
 
 /* ---------- Education: my view ---------- */
 const ME={n:"홍길동",d:"기획팀"};
-const myAtt=[
+let myAtt=[
  {date:"2026-10-02",in:"",out:"18:00"},
  {date:"2026-10-01",in:"08:50",out:"18:04"},
  {date:"2026-09-30",in:"09:12",out:"18:30"},
@@ -351,7 +353,47 @@ function login(role){
   showTab(MENUS[role][0][0]);
 }
 function logout(){$('app').style.display="none";$('login').style.display="flex"}
-renderDash();renderAtt();renderEdu();renderMyAtt();renderMyEdu();
+
+/* ---------- Supabase ---------- */
+// Supabase 프로젝트 설정 > API 에서 복사해 아래 두 값을 붙여넣으세요. (anon public 키만 사용)
+const SUPABASE_URL = "";   // 예: "https://xxxx.supabase.co"
+const SUPABASE_KEY = "";   // 예: "eyJhbGciOi..."
+const sb = (SUPABASE_URL && SUPABASE_KEY && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+const hhmm=t=>{if(!t)return"";const [h,m]=t.split(":");return h.padStart(2,"0")+":"+m};
+// 출입 로그(attendance)를 직원·일자별 출근/퇴근 기록으로 집계. 로그가 없는 날은 출근·퇴근 모두 미인식
+function buildDaily(rows){
+  const emp={},dates=new Set(),log={};
+  rows.forEach(r=>{
+    emp[r.emp_id]={n:r.emp_name,d:r.dept_name};dates.add(r.tag_date);
+    const k=r.emp_id+"|"+r.tag_date,x=log[k]=log[k]||{in:"",out:""},t=hhmm(r.tag_time);
+    if(r.event_type==="CHECK_IN"){if(!x.in||t<x.in)x.in=t}
+    else if(r.event_type==="CHECK_OUT"){if(!x.out||t>x.out)x.out=t}
+  });
+  const out=[];
+  [...dates].sort().forEach(date=>Object.keys(emp).forEach(id=>{
+    const x=log[id+"|"+date]||{in:"",out:""};
+    out.push({id,date,n:emp[id].n,d:emp[id].d,std:"09:00",in:x.in,out:x.out});
+  }));
+  return out;
+}
+function setSource(txt,ok){const e=$('dataSrc');e.textContent=txt;e.style.color=ok?'var(--ok)':'var(--warn)'}
+async function fetchAttendanceData(){
+  if(!sb){setSource("● 모의 데이터 (Supabase 미설정)",false);return}
+  setSource("● Supabase 불러오는 중…",false);
+  const {data,error}=await sb.from("attendance").select("*").order("tag_date").order("tag_time").limit(5000);
+  if(error||!data||!data.length){
+    console.error(error);setSource("● Supabase 연결 실패 · 모의 데이터 표시",false);
+    toast("Supabase에서 데이터를 불러오지 못했습니다."+(error?" ("+error.message+")":""));return;
+  }
+  att=buildDaily(data);
+  const me=att[0];ME.n=me.n;ME.d=me.d;
+  myAtt=att.filter(a=>a.id===me.id).sort((x,y)=>y.date.localeCompare(x.date));
+  renderAll();setSource("● Supabase 연동 ("+data.length+"건)",true);
+}
+function renderAll(){renderDash();renderAtt();renderEdu();renderMyAtt();renderMyEdu()}
+renderAll();
+fetchAttendanceData();
 </script>
 </body>
 </html>

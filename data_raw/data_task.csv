@@ -1,0 +1,9 @@
+﻿task_id,task_title,requesting_dept,target_dept,assignee_name,form_url,due_date,submission_status
+REQ-2026-001,2027년도 주요업무계획 수립 부서별 신규사업 수요조사,기획조정실,AI산업팀,안송이,https://portal.gbsa.or.kr/forms/req_business_plan_2027.xlsx,2026-09-30,미제출
+REQ-2026-002,2026년 3분기 예산집행 실적 및 4분기 불용예상액 점검표,예산팀,AI산업팀,안송이,https://portal.gbsa.or.kr/forms/req_budget_q3_check.xlsx,2026-09-25,제출완료
+REQ-2026-003,2026년도 하반기 자체 일상감사 이행결과표 제출,감사실,기획조정실,김민준,https://portal.gbsa.or.kr/forms/req_audit_2026_h2.xlsx,2026-09-15,기한초과
+REQ-2026-005,정품 소프트웨어(SW) 라이선스 정기 실태점검표,정보화추진팀,인사총무팀,이서연,https://portal.gbsa.or.kr/forms/req_sw_license_audit.xlsx,2026-09-20,제출완료
+REQ-2026-018,부서별 연구용역 사후관리 및 평가결과서,기획조정실,AI산업팀,안송이,https://portal.gbsa.or.kr/forms/req_research_eval.xlsx,2026-09-17,기한초과
+REQ-2026-020,소방 및 피난안전시설 부서별 합동점검표,안전시설팀,인사총무팀,이서연,https://portal.gbsa.or.kr/forms/req_fire_safety_check.xlsx,2026-09-27,미제출
+REQ-2026-023,공공기관 ESG 경영실적 증빙 체크리스트,미래전략실,기획조정실,김민준,https://portal.gbsa.or.kr/forms/req_esg_evidence_2026.xlsx,2026-10-12,미제출
+REQ-2026-036,AI 혁신 실무 프로젝트 추진경과 보고서,미래전략실,AI산업팀,안송이,https://portal.gbsa.or.kr/forms/req_ai_project_status.xlsx,2026-09-24,제출완료

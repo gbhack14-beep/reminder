@@ -238,60 +238,24 @@ tr:hover td{background:#fafcff}
     </div>
   </section>
 
-  <!-- ================= TAB 2: 근태 실시간 감시 & 지문인식기 연동 (관리자) ================= -->
+  <!-- ================= TAB 2: 근태 실시간 감시 엔진 (관리자) ================= -->
   <section class="tab" id="att">
     <div class="head">
       <div>
-        <h1>⏰ 세스코 지문인식기 실시간 감시 엔진</h1>
-        <div class="sub">FastAPI 감시 엔진 + 세스코 지문인식기 + 사내 메일 발송기 연동 시퀀스 모의 시뮬레이션</div>
+        <h1>⏰ 근태 실시간 감시 엔진</h1>
+        <div class="sub">세스코 지문인식기 & 출입 게이트 실시간 로그 기반 이상 감지 및 소명 관리</div>
       </div>
-      <button class="btn out" onclick="resetAttSimulator()">🔄 시뮬레이터 초기화</button>
-    </div>
-
-    <!-- Sequence Simulator Interactive Card -->
-    <div class="card" style="margin-bottom:18px;border-top:4px solid var(--pri)">
-      <h3><span class="title-left">⚡ [시퀀스 다이어그램 인터랙티브 시뮬레이터] 지문 미인식 ➔ 긴급 알림 ➔ 재태그 ➔ 자동 해제</span></h3>
-      <div class="grid g3" style="margin-bottom:14px">
-        <div class="flow-step-box" id="stepBox1">
-          <span class="flow-step-num">시나리오 1</span>
-          <b>08:55 정상 출근 태그</b>
-          <p style="font-size:12px;color:var(--mute);margin:6px 0">지문 태그 성공 ➔ 08:55 실시간 기록 동기화 ➔ [정상 출근] 판정 (알림 발송 없음)</p>
-          <button class="btn success" style="width:100%;padding:6px;font-size:12px" onclick="simNormalAttendance('홍길동')">▶ 홍길동 08:55 정상 태그</button>
-        </div>
-        <div class="flow-step-box" id="stepBox2">
-          <span class="flow-step-num">시나리오 2-A</span>
-          <b>09:05 지문 미인식 감지</b>
-          <p style="font-size:12px;color:var(--mute);margin:6px 0">09:00 출근자이나 09:05까지 미태그 ➔ 🚨 [긴급] 출근 미인식 알림 메일 즉시 도착</p>
-          <button class="btn danger" style="width:100%;padding:6px;font-size:12px" onclick="simMissAttendanceAlert('임도현')">🚨 09:05 임도현 긴급 알림 트리거</button>
-        </div>
-        <div class="flow-step-box" id="stepBox3">
-          <span class="flow-step-num">시나리오 2-B</span>
-          <b>09:07 지문 재태그 완료</b>
-          <p style="font-size:12px;color:var(--mute);margin:6px 0">메일 확인 후 기기 재태그 ➔ 09:07 인식 ➔ [정상 인증] 즉시 전환 (추가 알림 차단)</p>
-          <button class="btn" style="width:100%;padding:6px;font-size:12px" onclick="simRetagAttendance('임도현')">✔ 09:07 임도현 재태그 인식</button>
-        </div>
-      </div>
-
-      <!-- Real-time Engine Log Terminal -->
-      <div class="sim-container">
-        <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#94a3b8;font-size:11px">
-          <span>실시간 엔진 콘솔 (FastAPI Background Scheduler Log)</span>
-          <span id="logStatus">● LISTENING ON PORT 8000</span>
-        </div>
-        <div class="sim-log" id="simLog">
-          <div class="log-line"><span class="log-time">[08:50:00]</span> <span class="log-engine">[Engine]</span> 세스코 지문인식기 TCP 소켓 연결 수신 대기 중...</div>
-          <div class="log-line"><span class="log-time">[08:55:12]</span> <span class="log-device">[Device]</span> 김민수(기획팀) 지문 태그 인식 성공 (ID: EMP-002)</div>
-          <div class="log-line"><span class="log-time">[08:55:13]</span> <span class="log-engine">[Engine]</span> 출근 기록 동기화 완료: [김민수 - 08:55] ➔ 상태: 정상 (알림 생략)</div>
-        </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn danger" onclick="triggerAttendanceEmergencyNotice()">🚨 미인식자 긴급 재태그 요청 일괄 발송</button>
       </div>
     </div>
 
     <!-- Attendance Status Table -->
     <div class="card">
       <div class="head">
-        <h3>📋 전사 실시간 근태 현황 테이블</h3>
-        <div class="info" style="margin:0;padding:6px 12px;font-size:12px">
-          AI 판별: 09:00 출근 미인식 시 <b>09:05 긴급 독촉 자동 발송</b> · 18:01 <b>퇴근 미인식 감지</b>
+        <h3><span class="title-left">📋 전사 실시간 근태 현황 테이블</span></h3>
+        <div class="info" style="margin:0;padding:6px 14px;font-size:12.5px">
+          AI 판별 규칙: 09:00 출근 미인식 시 <b>09:05 긴급 독촉 자동 발송</b> · 18:01 이후 <b>퇴근 미인식 감지</b>
         </div>
       </div>
       <table>
@@ -1132,8 +1096,7 @@ const MENUS = {
   admin: [
     ["dash", "📊 대시보드 총괄", "모니터링"],
     ["att", "⏰ 근태 실시간 감시 엔진", "A모듈"],
-    ["edu", "🎓 교육 건 & 수료증 교차검증", "B모듈"],
-    ["myedu", "📤 임직원 간편 제출 (체험)", "원클릭"]
+    ["edu", "🎓 교육 건 & 수료증 교차검증", "B모듈"]
   ],
   user: [
     ["myedu", "📤 수료증 원클릭 제출", "Magic Link"],

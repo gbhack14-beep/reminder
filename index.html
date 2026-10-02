@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GBSA 통합 스마트 리마인더 & 출결·교육 자동화 시스템</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#f4f7fb;--card:#ffffff;--ink:#192231;--mute:#64748b;--line:#e2e8f0;
@@ -109,7 +110,7 @@ tr:hover td{background:#fafcff}
 .drop-zone small{display:block;margin-top:4px;font-size:11.5px;color:var(--mute)}
 .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
-/* Sequence Diagram & Simulator styles */
+/* Sequence Simulator Terminal */
 .sim-container{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:18px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12.5px;overflow-x:auto}
 .sim-log{max-height:220px;overflow-y:auto;background:#020617;padding:12px;border-radius:8px;border:1px solid #1e293b;line-height:1.7}
 .sim-log .log-line{display:flex;gap:8px}
@@ -154,7 +155,8 @@ tr:hover td{background:#fafcff}
   <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">
     💡 <b>핵심 지원 기능</b><br>
     - 세스코 지문인식기 연동 09:05 긴급 알림 & 재태그 자동 복구<br>
-    - 교육 건 생성, 엑셀 대상자 업로드, Magic Link 원클릭 수료증 제출
+    - 교육 건 생성, 엑셀 대상자 업로드, Magic Link 원클릭 수료증 제출<br>
+    - Supabase 출결 DB 실시간 동기화 지원
   </div>
 </div></div>
 
@@ -168,6 +170,7 @@ tr:hover td{background:#fafcff}
   <nav id="nav"></nav>
   <div class="side-footer">
     <div>🚀 실시간 감시 엔진 : <span style="color:#22c55e">● 동작 중</span></div>
+    <div>📡 DB 소스 : <span id="dataSrc" style="font-weight:600;color:var(--warn)">● 로컬/모의 데이터</span></div>
     <div>⏰ 기준 시각 : <span id="clockText">09:05:00</span></div>
   </div>
 </aside>
@@ -1169,12 +1172,77 @@ $('bulk').onclick = () => {
   toast(`📨 미수료자 ${pend.length}명에게 "${DOC.name}" 원클릭 제출 링크 및 독촉 메일을 발송했습니다.`);
 };
 
+/* ================= SUPABASE DB INTEGRATION ================= */
+const SUPABASE_URL = "";   // 예: "https://xxxx.supabase.co"
+const SUPABASE_KEY = "";   // 예: "eyJhbGciOi..."
+const sb = (SUPABASE_URL && SUPABASE_KEY && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+const hhmm = t => {
+  if (!t) return "";
+  const [h, m] = t.split(":");
+  return h.padStart(2, "0") + ":" + m;
+};
+
+function setSource(txt, ok) {
+  const e = $('dataSrc');
+  if (e) {
+    e.textContent = txt;
+    e.style.color = ok ? 'var(--ok)' : 'var(--warn)';
+  }
+}
+
+async function fetchAttendanceData() {
+  if (!sb) {
+    setSource("● 모의 데이터 (Supabase 미설정)", false);
+    return;
+  }
+  setSource("● Supabase 불러오는 중…", false);
+  const { data, error } = await sb.from("attendance").select("*").order("tag_date").order("tag_time").limit(5000);
+  if (error || !data || !data.length) {
+    console.error(error);
+    setSource("● Supabase 연결 실패 · 모의 데이터 표시", false);
+    return;
+  }
+  
+  // Update attendance data from Supabase
+  const empMap = {}, logMap = {};
+  data.forEach(r => {
+    empMap[r.emp_id] = { n: r.emp_name, d: r.dept_name };
+    const k = r.emp_id + "|" + r.tag_date;
+    const x = logMap[k] = logMap[k] || { in: "", out: "" };
+    const t = hhmm(r.tag_time);
+    if (r.event_type === "CHECK_IN") { if (!x.in || t < x.in) x.in = t; }
+    else if (r.event_type === "CHECK_OUT") { if (!x.out || t > x.out) x.out = t; }
+  });
+
+  const updatedAtt = [];
+  Object.keys(empMap).forEach(id => {
+    const x = logMap[id + "|" + TODAY] || { in: "", out: "" };
+    updatedAtt.push({
+      n: empMap[id].n,
+      d: empMap[id].d,
+      std: "09:00",
+      in: x.in,
+      out: x.out,
+      note: !x.in ? "09:05 지문 미인식" : "정상 출근"
+    });
+  });
+
+  if (updatedAtt.length > 0) {
+    att = updatedAtt;
+    renderDash();
+    renderAtt();
+  }
+  setSource("● Supabase 연동 (" + data.length + "건)", true);
+}
+
 // Initialize
 renderDash();
 renderAtt();
 renderEdu();
 renderMyViews();
 updateMailCount();
+fetchAttendanceData();
 </script>
 </body>
 </html>

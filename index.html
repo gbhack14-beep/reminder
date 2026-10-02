@@ -286,8 +286,8 @@ body {
       <!-- Top Title Bar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">교육 건 등록 & 대상자 엑셀 업로드</h2>
-          <p class="text-xs text-slate-500 mt-0.5">교육 과정 생성, 엑셀 대상자 일괄 매핑, Magic Link 발송 및 AI OCR 교차 검증</p>
+          <h2 class="text-lg font-bold text-slate-900">교육 건 등록 & 수료증 교차 검증</h2>
+          <p class="text-xs text-slate-500 mt-0.5">교육 과정 생성, 공문 등록, Magic Link 발송 및 AI OCR 교차 검증</p>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="downloadMagicLinksExcel()" class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors">
@@ -299,65 +299,45 @@ body {
         </div>
       </div>
 
-      <!-- Creation & Excel Upload Cards -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- Step 1: Edu Create -->
-        <div class="border border-slate-200 rounded-xl p-6 bg-white space-y-4">
+      <!-- Creation Card (Full Width Single Card) -->
+      <div class="border border-slate-200 rounded-xl p-6 bg-white space-y-4">
+        <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-wider">
-            <span class="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-xs">1</span>
-            <span>교육 과정 생성 및 공문 등록</span>
+            <span class="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-xs">📄</span>
+            <span>교육 과정 생성 및 수료 요구 공문 등록</span>
           </div>
-          <div class="space-y-3 text-xs">
-            <div>
-              <label class="block font-medium text-slate-700 mb-1">교육 과정명</label>
-              <input type="text" id="inputEduName" value="2026년 상반기 개인정보보호 교육" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-blue-600 focus:border-blue-600">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-medium text-slate-700 mb-1">이수 기한 (D-Day)</label>
-                <input type="date" id="inputEduDeadline" value="2026-10-31" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-mono">
-              </div>
-              <div>
-                <label class="block font-medium text-slate-700 mb-1">자동 리마인더</label>
-                <select id="inputEduReminder" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs">
-                  <option>D-7, D-3, D-1, 당일 발송</option>
-                  <option>매주 월요일 정기 리마인더</option>
-                  <option>매일 아침 09:00 미제출자 독촉</option>
-                </select>
-              </div>
-            </div>
-            <div class="pt-2 flex items-center gap-2">
-              <input type="file" id="eduDocFile" class="text-xs text-slate-500 file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:rounded-md file:text-xs file:font-semibold">
-              <button onclick="processEduDocOCR()" class="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors">
-                📄 공문 OCR 등록
-              </button>
-            </div>
+          <button onclick="sendMagicLinkBulk()" class="border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold text-xs px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+            <span>📧 개인별 원클릭 제출 Magic Link 일괄 발송 (SMTP)</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="md:col-span-1">
+            <label class="block font-medium text-slate-700 mb-1">교육 과정명</label>
+            <input type="text" id="inputEduName" value="2026년 상반기 개인정보보호 교육" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-blue-600 focus:border-blue-600">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">이수 기한 (D-Day)</label>
+            <input type="date" id="inputEduDeadline" value="2026-10-31" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-mono">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">자동 리마인더 주기</label>
+            <select id="inputEduReminder" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs">
+              <option>D-7, D-3, D-1, 당일 발송</option>
+              <option>매주 월요일 정기 리마인더</option>
+              <option>매일 아침 09:00 미제출자 독촉</option>
+            </select>
           </div>
         </div>
 
-        <!-- Step 2: Excel Drop Zone -->
-        <div class="border border-slate-200 rounded-xl p-6 bg-white flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-wider mb-3">
-              <span class="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-xs">2</span>
-              <span>교육 대상자 엑셀 업로드 (.xlsx / .csv)</span>
-            </div>
-            
-            <div class="border-2 border-dashed border-slate-200 hover:border-blue-500 bg-slate-50/50 hover:bg-blue-50/20 rounded-xl p-6 text-center cursor-pointer transition-all relative">
-              <input type="file" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
-              <div class="text-2xl mb-1">📊</div>
-              <div class="text-xs font-semibold text-slate-800">엑셀 명단 파일을 이곳에 드래그하세요</div>
-              <div class="text-[11px] text-slate-500 mt-1">사원번호, 성명, 부서 자동 매핑 및 Magic Link 일괄 생성</div>
-              <div class="mt-3 inline-block bg-blue-100 text-blue-700 font-mono text-[11px] font-semibold px-2.5 py-1 rounded-full" id="excelDropStatus">
-                14명 대상자 로드됨
-              </div>
-            </div>
+        <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <input type="file" id="eduDocFile" class="text-xs text-slate-500 file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:rounded-md file:text-xs file:font-semibold">
+            <button onclick="processEduDocOCR()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors">
+              📄 공문 OCR 등록 & 배포
+            </button>
           </div>
-
-          <button onclick="sendMagicLinkBulk()" class="w-full border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5">
-            <span>📧 개인별 원클릭 제출 Magic Link 일괄 발송 (SMTP)</span>
-          </button>
+          <span class="text-xs text-slate-500">공문 첨부 시 교육명/기한 자동 추출 및 전사 수강 요청 알림 자동 배포</span>
         </div>
       </div>
 

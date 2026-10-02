@@ -1,472 +1,529 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" class="h-full">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GBSA 통합 스마트 리마인더 & 출결·교육 자동화 시스템</title>
+<title>GBSA 통합 리마인더 · 에스원 출결 & 교육 자동화 관제</title>
+<!-- Tailwind CSS Play CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Pretendard & Inter Web Fonts -->
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['"Pretendard"', '"Inter"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+      },
+      colors: {
+        brand: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          500: '#3b82f6',
+          600: '#0069ff', /* Calendly Blue */
+          700: '#0056cc',
+        },
+        slate: {
+          850: '#131b2e',
+          900: '#0b132b',
+        }
+      }
+    }
+  }
+}
+</script>
+
 <style>
-:root{
-  --bg:#f4f7fb;--card:#ffffff;--ink:#192231;--mute:#64748b;--line:#e2e8f0;
-  --pri:#2563eb;--pri-d:#1d4ed8;--pri-light:#eff6ff;
-  --ok:#16a34a;--okb:#dcfce7;--ok-dark:#15803d;
-  --warn:#d97706;--warnb:#fef3c7;--warn-dark:#b45309;
-  --bad:#dc2626;--badb:#fee2e2;--bad-dark:#b91c1c;
-  --side:#0f172a;--side-active:#1e293b;--purple:#7c3aed;--purple-bg:#f5f3ff;
+body {
+  background-color: #ffffff;
+  color: #1d2939;
+  -webkit-font-smoothing: antialiased;
 }
-*{box-sizing:border-box}
-body{margin:0;font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
-aside{width:250px;background:var(--side);color:#94a3b8;padding:22px 14px;flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;box-shadow:2px 0 10px rgba(0,0,0,0.05);z-index:20}
-.logo{font-weight:800;color:#fff;font-size:16px;padding:0 8px 12px;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
-.logo small{display:block;font-weight:400;font-size:11px;color:#64748b;margin-top:2px}
-nav{margin-top:20px;display:flex;flex-direction:column;gap:5px;flex:1}
-nav .nav-sec{font-size:11px;font-weight:700;text-transform:uppercase;color:#475569;padding:10px 10px 4px;margin-top:10px}
-nav button{all:unset;cursor:pointer;padding:10px 12px;border-radius:8px;font-size:13.5px;display:flex;gap:10px;align-items:center;color:#cbd5e1;transition:all .15s}
-nav button:hover{background:#1e293b;color:#fff}
-nav button.on{background:var(--pri);color:#fff;font-weight:600}
-nav .tag{margin-left:auto;font-size:10px;padding:2px 6px;border-radius:4px;background:#334155;color:#cbd5e1}
-nav button.on .tag{background:#1d4ed8;color:#fff}
-.side-footer{border-top:1px solid #1e293b;padding-top:14px;font-size:12px;color:#64748b;display:flex;flex-direction:column;gap:6px}
-
-main{flex:1;padding:26px 36px;min-width:0;overflow-y:auto}
-h1{font-size:22px;margin:0 0 4px;font-weight:700;display:flex;align-items:center;gap:10px}.sub{color:var(--mute);font-size:13px;margin-bottom:20px}
-.tab{display:none;animation:fadeUp .25s ease-out}.tab.on{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
-.grid{display:grid;gap:16px}
-.g4{grid-template-columns:repeat(4,1fr)}
-.g3{grid-template-columns:repeat(3,1fr)}
-.g2{grid-template-columns:1fr 1fr}
-.g1-2{grid-template-columns:1fr 2fr}
-.g2-1{grid-template-columns:2fr 1fr}
-
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.02)}
-.card h3{margin:0 0 14px;font-size:15px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.card h3 span.title-left{display:flex;align-items:center;gap:8px}
-.kpi .n{font-size:26px;font-weight:800;color:#0f172a;margin:4px 0}
-.kpi .l{font-size:12px;color:var(--mute)}
-.kpi .foot{font-size:11.5px;color:var(--pri);margin-top:6px;display:flex;align-items:center;gap:4px}
-
-.bar{height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:99px;background:var(--pri);transition:width .4s ease}
-.bar i.r{background:var(--bad)}.bar i.g{background:var(--ok)}.bar i.w{background:var(--warn)}
-.row{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:13px}
-.row b{width:80px;font-weight:600;font-size:12.5px}.row .bar{flex:1}.row span{width:46px;text-align:right;color:var(--mute);font-size:12px;font-weight:600}
-
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--mute);font-weight:600;padding:10px 10px;border-bottom:1px solid var(--line);white-space:nowrap;background:#f8fafc;font-size:12px}
-td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
-tr:last-child td{border-bottom:0}
-tr:hover td{background:#fafcff}
-
-.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;font-size:11.5px;font-weight:600;line-height:1.2}
-.b-warn{background:var(--warnb);color:var(--warn-dark)}
-.b-bad{background:var(--badb);color:var(--bad-dark)}
-.b-ok{background:var(--okb);color:var(--ok-dark)}
-.b-pri{background:var(--pri-light);color:var(--pri-d)}
-.b-purple{background:var(--purple-bg);color:var(--purple)}
-
-.btn{border:0;background:var(--pri);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .15s;text-decoration:none}
-.btn:hover{background:var(--pri-d)}
-.btn.big{padding:10px 18px;font-size:13.5px;font-weight:600}
-.btn.out{background:#fff;color:var(--pri);border:1px solid #cbd5e1}
-.btn.out:hover{background:#f8fafc;border-color:var(--pri)}
-.btn.success{background:var(--ok)}.btn.success:hover{background:var(--ok-dark)}
-.btn.danger{background:var(--bad)}.btn.danger:hover{background:var(--bad-dark)}
-.btn:disabled{background:#cbd5e1;color:#94a3b8;cursor:not-allowed;border:none}
-
-.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
-.info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;line-height:1.6;color:#1e40af}
-.info b{color:#1e3a8a}
-.info.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
-.reason{font-size:11.5px;color:var(--bad);margin-top:2px}
-
-/* Toast */
-#toast{position:fixed;right:24px;bottom:24px;background:#0f172a;color:#fff;padding:14px 20px;border-radius:10px;font-size:13.5px;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;max-width:420px;box-shadow:0 10px 25px rgba(0,0,0,0.2);z-index:100;display:flex;align-items:center;gap:10px;border-left:4px solid var(--pri)}
-#toast.show{opacity:1;transform:none}
-
-/* Top bar */
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.top-left{font-size:13px;color:var(--mute);display:flex;align-items:center;gap:10px}
-.top-right{display:flex;align-items:center;gap:12px;font-size:13px}
-.top .role{background:#eff6ff;color:var(--pri);padding:5px 12px;border-radius:99px;font-weight:700;border:1px solid #bfdbfe}
-.mail-badge-btn{position:relative;background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink)}
-.mail-badge-btn:hover{background:#f8fafc}
-.badge-count{background:var(--bad);color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;font-weight:800}
-
-/* Login Modal */
-#login{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%);display:flex;align-items:center;justify-content:center;z-index:90}
-#login .box{background:#fff;border-radius:20px;padding:40px 36px;width:420px;max-width:92vw;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,0.35)}
-#login h2{margin:12px 0 4px;font-size:22px}
-#login p{color:var(--mute);font-size:13px;margin:0 0 24px}
-#login .btn{display:flex;justify-content:center;width:100%;margin-top:10px;padding:13px;font-size:14.5px}
-
-/* Drag and Drop Zone */
-.drop-zone{border:2px dashed #93c5fd;background:#f8fafc;border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
-.drop-zone:hover,.drop-zone.dragover{background:#eff6ff;border-color:var(--pri)}
-.drop-zone .icon{font-size:36px;margin-bottom:8px}
-.drop-zone p{margin:0;font-size:13.5px;color:#334155;font-weight:500}
-.drop-zone small{display:block;margin-top:4px;font-size:11.5px;color:var(--mute)}
-.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-
-/* Sequence Simulator Terminal */
-.sim-container{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:18px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12.5px;overflow-x:auto}
-.sim-log{max-height:220px;overflow-y:auto;background:#020617;padding:12px;border-radius:8px;border:1px solid #1e293b;line-height:1.7}
-.sim-log .log-line{display:flex;gap:8px}
-.sim-log .log-time{color:#64748b}
-.sim-log .log-engine{color:#38bdf8}
-.sim-log .log-device{color:#f59e0b}
-.sim-log .log-mail{color:#ec4899}
-.sim-log .log-ok{color:#4ade80}
-.sim-log .log-err{color:#f87171}
-
-.flow-step-box{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px;position:relative}
-.flow-step-box.active{border-color:var(--pri);background:#eff6ff}
-.flow-step-num{position:absolute;top:-10px;left:14px;background:var(--pri);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
-
-/* Modal Windows */
-.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,0.6);display:none;align-items:center;justify-content:center;z-index:80;backdrop-filter:blur(3px)}
-.modal-bg.open{display:flex}
-.modal-box{background:#fff;border-radius:16px;width:680px;max-width:92vw;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,0.25)}
-.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.modal-header h3{margin:0;font-size:18px}
-.modal-close{background:transparent;border:0;font-size:20px;cursor:pointer;color:var(--mute)}
-
-@media(max-width:960px){
-  body{flex-direction:column}
-  aside{width:100%;height:auto;position:static}
-  nav{flex-direction:row;flex-wrap:wrap}
-  .g4,.g3{grid-template-columns:1fr 1fr}
-  .g2,.g1-2,.g2-1{grid-template-columns:1fr}
-  main{padding:16px}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.sub-tab-btn.active {
+  border-bottom: 2px solid #0069ff;
+  color: #0069ff;
+  font-weight: 600;
 }
+.sidebar-link.active {
+  background-color: #ebf3ff;
+  color: #0069ff;
+  font-weight: 600;
+}
+.sidebar-link.active svg {
+  stroke: #0069ff;
+}
+/* Subtle scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f8fafc; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 </style>
 </head>
-<body>
+<body class="h-full flex overflow-hidden font-sans">
 
-<!-- Mock Login Screen -->
-<div id="login"><div class="box">
-  <div style="font-size:42px;margin-bottom:6px">⚡</div>
-  <h2 style="color:#0f172a">GBSA 통합 리마인더</h2>
-  <p>근태 이상 실시간 감시 & 교육 수료 OCR 자동 검증 시스템</p>
-  <button class="btn big" onclick="login('admin')" style="background:#2563eb">🛡 취합부서(관리자) 모드로 시작</button>
-  <button class="btn big out" onclick="login('user')" style="margin-top:10px">👤 임직원(제출자) 모드로 시작</button>
-  <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">
-    💡 <b>핵심 지원 기능</b><br>
-    - 세스코 지문인식기 연동 09:05 긴급 알림 & 재태그 자동 복구<br>
-    - 교육 건 생성, 엑셀 대상자 업로드, Magic Link 원클릭 수료증 제출<br>
-    - Supabase 출결 DB 실시간 동기화 지원
-  </div>
-</div></div>
+<!-- ================= LEFT SIDEBAR (Calendly Style) ================= -->
+<aside class="w-64 border-r border-slate-200 bg-white flex flex-col justify-between shrink-0 select-none z-20">
+  <div>
+    <!-- User / Organization Selector -->
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" onclick="toggleRoleDropdown()">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-sm shrink-0" id="userAvatar">
+          A
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-slate-900 truncate" id="sidebarUserName">취합부서 관리자</div>
+          <div class="text-xs text-slate-500 font-normal truncate" id="sidebarUserEmail">admin@gbsa.kr</div>
+        </div>
+      </div>
+      <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </div>
 
-<!-- Main App Container -->
-<div id="app" style="display:none;width:100%">
-<aside>
-  <div class="logo">
-    <div class="logo-icon">🔔</div>
-    <div>GBSA 통합 리마인더<small>자동화 코어 엔진 v2.5</small></div>
+    <!-- Navigation Links -->
+    <div class="p-3 space-y-1" id="sidebarNav">
+      <!-- Injected via JS -->
+    </div>
   </div>
-  <nav id="nav"></nav>
-  <div class="side-footer">
-    <div>🚀 실시간 감시 엔진 : <span style="color:#22c55e">● 동작 중</span></div>
-    <div>📡 DB 소스 : <span id="dataSrc" style="font-weight:600;color:var(--warn)">● 로컬/모의 데이터</span></div>
-    <div>⏰ 기준 시각 : <span id="clockText">09:05:00</span></div>
+
+  <!-- Sidebar Bottom Section -->
+  <div class="p-4 border-t border-slate-200 space-y-3">
+    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-medium text-slate-700">에스원 실시간 감시</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      </div>
+      <div class="text-slate-500 text-[11px]" id="dbSourceText">DB: 로컬 모의 데이터</div>
+    </div>
+
+    <button onclick="openMailModal()" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        <span>사내 알림 메일함</span>
+      </div>
+      <span class="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="mailCount">3</span>
+    </button>
+
+    <div class="flex items-center justify-between pt-1 text-xs text-slate-500">
+      <button onclick="logout()" class="hover:text-blue-600 font-medium flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <span>역할 변경 / 로그아웃</span>
+      </button>
+      <span class="text-[11px] font-mono text-slate-400">v2.5</span>
+    </div>
   </div>
 </aside>
 
-<main>
-  <!-- Top Navigation Bar -->
-  <div class="top">
-    <div class="top-left">
-      <span>기준일: <b id="today" style="color:var(--ink)">2026-10-02</b></span>
-      <span>|</span>
-      <span>실시간 엔진: <b style="color:var(--ok)">FastAPI + APScheduler 가동 중</b></span>
+<!-- ================= MAIN CONTENT WRAPPER ================= -->
+<div class="flex-1 flex flex-col h-full min-w-0 bg-white overflow-hidden">
+  
+  <!-- Top App Bar -->
+  <header class="h-16 border-b border-slate-200 px-8 flex items-center justify-between shrink-0 bg-white">
+    <div class="flex items-center gap-4">
+      <h1 class="text-xl font-bold text-slate-900 tracking-tight" id="topPageTitle">Scheduling & Compliance</h1>
+      <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium" id="topDateBadge">기준일: 2026-10-02</span>
     </div>
-    <div class="top-right">
-      <button class="mail-badge-btn" onclick="openMailModal()">
-        📬 사내 메일함 (Mock)
-        <span class="badge-count" id="mailCount">3</span>
+
+    <!-- Top Action Buttons -->
+    <div class="flex items-center gap-3">
+      <button onclick="triggerDDayReminder()" class="border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-full px-4 py-2 transition-all">
+        ⏰ D-Day 리마인더 가동
       </button>
-      <span class="role" id="who">관리자</span>
-      <span id="welcome" style="font-weight:600">관리자님</span>
-      <button class="btn out" style="padding:5px 10px;font-size:12px" onclick="logout()">로그아웃</button>
+      <button onclick="downloadFinalReport()" class="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-full px-4 py-2 transition-all flex items-center gap-1.5">
+        <span>+ 엑셀 리포트 다운로드</span>
+      </button>
     </div>
+  </header>
+
+  <!-- Sub Navigation (Underline Tabs) -->
+  <div class="border-b border-slate-200 px-8 flex items-center gap-6 text-sm text-slate-500 overflow-x-auto bg-white" id="subTabBar">
+    <button onclick="switchTab('dash')" data-tab="dash" class="sub-tab-btn py-3 border-b-2 border-transparent hover:text-slate-800 transition-colors active">
+      대시보드 총괄
+    </button>
+    <button onclick="switchTab('att')" data-tab="att" class="sub-tab-btn py-3 border-b-2 border-transparent hover:text-slate-800 transition-colors">
+      에스원 근태 실시간 관제
+    </button>
+    <button onclick="switchTab('edu')" data-tab="edu" class="sub-tab-btn py-3 border-b-2 border-transparent hover:text-slate-800 transition-colors">
+      교육 건 & 수료증 교차 검증
+    </button>
   </div>
 
-  <!-- ================= TAB 1: 대시보드 총괄 (관리자) ================= -->
-  <section class="tab on" id="dash">
-    <div class="head">
-      <div>
-        <h1>📊 대시보드 총괄 모니터링</h1>
-        <div class="sub">근태 실시간 감시(A모듈) & 교육 수료 자동 검증(B모듈) 통합 현황</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn out" onclick="triggerDDayReminder()">⏰ 미제출자 D-Day 리마인더 즉시 가동</button>
-        <button class="btn success" onclick="downloadFinalReport()">📥 최종 집계 엑셀 다운로드</button>
-      </div>
-    </div>
+  <!-- Scrollable Main Viewport -->
+  <main class="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full space-y-8">
 
-    <div class="grid g4" id="kpis"></div>
-
-    <div class="grid g2" style="margin-top:16px">
-      <div class="card">
-        <h3><span class="title-left">🏢 부서별 근태 이상 비율</span> <small style="color:var(--mute);font-weight:400">지각 / 출퇴근 미인식</small></h3>
-        <div id="deptAtt"></div>
-      </div>
-      <div class="card">
-        <h3><span class="title-left">🎓 부서별 교육 수료 완료율</span> <small style="color:var(--mute);font-weight:400" id="currentEduTitle">개인정보보호 교육</small></h3>
-        <div id="deptEdu"></div>
-      </div>
-    </div>
-
-    <div class="grid g2" style="margin-top:16px">
-      <div class="card">
-        <div class="head">
-          <h3>🚨 금일 출근 미인식 / 지각 이상자</h3>
-          <button class="btn danger" style="padding:5px 10px;font-size:12px" onclick="triggerAttendanceEmergencyNotice()">⚡ 긴급 확인 메일 일괄 재발송</button>
-        </div>
-        <table><thead><tr><th>이름</th><th>부서</th><th>출근예정</th><th>상태</th><th>비고</th></tr></thead><tbody id="liveAtt"></tbody></table>
-      </div>
-      <div class="card">
-        <div class="head">
-          <h3>📝 교육 미수료 및 반려 대상자</h3>
-          <button class="btn big" id="bulk">📨 원클릭 독촉 메일 발송</button>
-        </div>
-        <table><thead><tr><th>이름</th><th>부서</th><th>상태</th><th>전용 제출 링크</th></tr></thead><tbody id="liveEdu"></tbody></table>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= TAB 2: 근태 실시간 감시 엔진 (관리자) ================= -->
-  <section class="tab" id="att">
-    <div class="head">
-      <div>
-        <h1>⏰ 근태 실시간 감시 엔진</h1>
-        <div class="sub">세스코 지문인식기 & 출입 게이트 실시간 로그 기반 이상 감지 및 소명 관리</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn danger" onclick="triggerAttendanceEmergencyNotice()">🚨 미인식자 긴급 재태그 요청 일괄 발송</button>
-      </div>
-    </div>
-
-    <!-- Attendance Status Table -->
-    <div class="card">
-      <div class="head">
-        <h3><span class="title-left">📋 전사 실시간 근태 현황 테이블</span></h3>
-        <div class="info" style="margin:0;padding:6px 14px;font-size:12.5px">
-          AI 판별 규칙: 09:00 출근 미인식 시 <b>09:05 긴급 독촉 자동 발송</b> · 18:01 이후 <b>퇴근 미인식 감지</b>
-        </div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>이름</th><th>부서</th><th>기준 출근</th><th>출근 기록</th><th>퇴근 기록</th><th>현재 상태</th><th style="text-align:right">원클릭 조치</th>
-          </tr>
-        </thead>
-        <tbody id="attBody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ================= TAB 3: 교육 수료 관리 & 엑셀 업로드 / 다운로드 (관리자) ================= -->
-  <section class="tab" id="edu">
-    <div class="head">
-      <div>
-        <h1>🎓 교육 건 생성 & 수료증 교차 검증 관리</h1>
-        <div class="sub">취합부서(관리자): 교육 생성, 엑셀 대상자 업로드, OCR 자동 검증 및 최종 결과 다운로드</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn out" onclick="downloadMagicLinksExcel()">🔗 개인별 원클릭 제출 링크 엑셀 내보내기</button>
-        <button class="btn success" onclick="downloadCertZip()">📦 검증완료 수료증 ZIP 다운로드</button>
-      </div>
-    </div>
-
-    <!-- Step 1: 교육 생성 & 엑셀 대상자 업로드 -->
-    <div class="grid g2" style="margin-bottom:16px">
-      <div class="card">
-        <h3><span class="title-left">1️⃣ 교육 건 생성 및 공문 등록</span></h3>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div>
-            <label style="font-size:12px;font-weight:600;color:var(--mute)">교육 과정명</label>
-            <input type="text" id="newEduName" value="2026년 상반기 개인정보보호 교육" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:4px">
+    <!-- ================= TAB 1: 대시보드 총괄 (Admin) ================= -->
+    <section id="pane-dash" class="tab-content active space-y-6">
+      
+      <!-- Top Filters / Search Bar (Calendly Style) -->
+      <div class="flex flex-wrap items-center justify-between gap-4 pb-2">
+        <div class="flex items-center gap-3 flex-1 min-w-[280px] max-w-md">
+          <div class="relative w-full">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" placeholder="임직원 성명, 부서, 교육 과정 검색..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all">
           </div>
-          <div class="grid g2">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button class="border border-slate-300 text-slate-700 px-3.5 py-2 rounded-lg text-xs font-medium hover:bg-slate-50 flex items-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+            <span>필터</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards (Clean Modern SaaS Style) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpiContainer"></div>
+
+      <!-- Progress Section (Two Column Layout) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Dept Attendance -->
+        <div class="border border-slate-200 rounded-xl p-6 bg-white">
+          <div class="flex items-center justify-between mb-4">
             <div>
-              <label style="font-size:12px;font-weight:600;color:var(--mute)">이수 마감일 (D-Day)</label>
-              <input type="date" id="newEduDeadline" value="2026-10-31" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:4px">
+              <h3 class="font-bold text-slate-900 text-sm">부서별 근태 이상 비율</h3>
+              <p class="text-xs text-slate-500">지각 및 에스원 지문 출퇴근 미인식 현황</p>
             </div>
+            <span class="text-xs font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full">이상 집계</span>
+          </div>
+          <div id="deptAttBars" class="space-y-3.5"></div>
+        </div>
+
+        <!-- Dept Education Progress -->
+        <div class="border border-slate-200 rounded-xl p-6 bg-white">
+          <div class="flex items-center justify-between mb-4">
             <div>
-              <label style="font-size:12px;font-weight:600;color:var(--mute)">D-Day 자동 리마인더</label>
-              <select id="newEduReminderOpt" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:4px">
-                <option>D-7, D-3, D-1, 당일 자동 발송</option>
-                <option>매주 월요일 정기 리마인더</option>
-                <option>매일 아침 09:00 미제출자 독촉</option>
-              </select>
+              <h3 class="font-bold text-slate-900 text-sm">부서별 교육 수료 완료율</h3>
+              <p class="text-xs text-slate-500" id="dashCourseNameSub">2026년 상반기 개인정보보호 교육</p>
             </div>
+            <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">실시간 OCR 집계</span>
           </div>
-          <div style="display:flex;gap:10px;margin-top:4px">
-            <input type="file" id="docFile" accept=".pdf,image/*" style="font-size:12px;flex:1">
-            <button class="btn" id="docBtn" onclick="processEduDocOCR()">📄 공문 OCR 자동인식 및 등록</button>
-          </div>
+          <div id="deptEduBars" class="space-y-3.5"></div>
         </div>
       </div>
 
-      <div class="card">
-        <h3><span class="title-left">2️⃣ 교육 대상자 엑셀 업로드 (.xlsx / .csv)</span></h3>
-        <div class="drop-zone" id="excelDropZone">
-          <div class="icon">📊</div>
-          <p>교육 대상자 엑셀 파일(명단)을 이곳에 드래그하세요</p>
-          <small>엑셀 업로드 시 사원번호, 성명, 부서, 이메일 자동 매핑 및 Magic Link 일괄 생성</small>
-          <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)">
+      <!-- Calendly Card-List Style (Events & Status Rows) -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-900 text-base">🚨 에스원 출근 미인식 & 이상 발생자</h3>
+          <button onclick="triggerAttendanceEmergencyNotice()" class="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-full transition-colors">
+            미인식자 긴급 재태그 요청 일괄 발송
+          </button>
         </div>
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;color:var(--mute)" id="excelUploadInfo">기본 14명 대상자 로드됨</span>
-          <button class="btn out" style="font-size:12px;padding:6px 12px" onclick="sendMagicLinkBulk()">📧 개인별 원클릭 제출 링크 일괄 발송 (SMTP)</button>
+
+        <!-- Attendance Card Rows with Colorful Side Accent Bars -->
+        <div id="dashLiveAttCards" class="space-y-3"></div>
+      </div>
+
+      <!-- Pending Education Submissions Card List -->
+      <div class="space-y-4 pt-2">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-900 text-base">📝 교육 미수료 및 반려 대상자</h3>
+          <button id="bulkReminderBtn" class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-1.5 rounded-full transition-colors">
+            📨 원클릭 일괄 독촉 메일 발송
+          </button>
+        </div>
+
+        <!-- Edu Pending Card Rows -->
+        <div id="dashLiveEduCards" class="space-y-3"></div>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 2: 에스원 근태 실시간 관제 (Admin) ================= -->
+    <section id="pane-att" class="tab-content space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">에스원(S-1) 지문인식기 실시간 감시 엔진</h2>
+          <p class="text-xs text-slate-500 mt-0.5">사내 출입 게이트 및 에스원 단말기 로그 기반 09:05 이상 감지 관리</p>
+        </div>
+        <button onclick="triggerAttendanceEmergencyNotice()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all">
+          🚨 출근 미인식 긴급 알림 일괄 전송
+        </button>
+      </div>
+
+      <!-- Info Banner -->
+      <div class="p-4 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900 flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span><b>AI 판별 규칙</b>: 09:00 출근자 기준 09:05까지 미태그 시 <b>[긴급 재태그 요청 메일 자동 도착]</b> ➔ 재태그 시 <b>[정상 인증 즉시 전환]</b></span>
+        </div>
+        <span class="font-mono text-blue-700 font-semibold" id="attTableEmpCount">14명 모니터링 중</span>
+      </div>
+
+      <!-- Attendance Table -->
+      <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-4 font-semibold">임직원 성명</th>
+              <th class="py-3 px-4 font-semibold">소속 부서</th>
+              <th class="py-3 px-4 font-semibold">기준 출근</th>
+              <th class="py-3 px-4 font-semibold">실제 출근 (에스원)</th>
+              <th class="py-3 px-4 font-semibold">퇴근 기록</th>
+              <th class="py-3 px-4 font-semibold">현재 상태</th>
+              <th class="py-3 px-4 font-semibold text-right">원클릭 조치</th>
+            </tr>
+          </thead>
+          <tbody id="attTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: 교육 건 & 수료증 교차 검증 (Admin) ================= -->
+    <section id="pane-edu" class="tab-content space-y-6">
+      
+      <!-- Top Title Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">교육 건 등록 & 대상자 엑셀 업로드</h2>
+          <p class="text-xs text-slate-500 mt-0.5">교육 과정 생성, 엑셀 대상자 일괄 매핑, Magic Link 발송 및 AI OCR 교차 검증</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="downloadMagicLinksExcel()" class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors">
+            🔗 Magic Link 명단 다운로드
+          </button>
+          <button onclick="downloadCertZip()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+            📦 검증완료 수료증 ZIP 다운로드
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Active Edu Info Banner -->
-    <div class="info" id="doc"></div>
-
-    <!-- Step 4: 자동 검증 & 리포트 테이블 -->
-    <div class="card">
-      <div class="head">
-        <h3><span class="title-left">4️⃣ 수료증 파일 자동 검증 현황 (OCR 이름·일자·과정 대조)</span></h3>
-        <div style="display:flex;gap:8px">
-          <button class="btn out" onclick="runBatchOCR()">⚡ 미검증 건 AI 일괄 검증 실행</button>
-        </div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>임직원</th><th>소속부서</th><th>제출 수료증 교육명</th><th>수료 일시</th><th>이름 일치</th><th>교육명 일치</th><th>기한 내</th><th>검증 결과</th><th style="text-align:right">조치</th>
-          </tr>
-        </thead>
-        <tbody id="eduBody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ================= TAB 4: 임직원 전용 - 원클릭 수료증 제출 (로그인 불필요 Magic Link 뷰) ================= -->
-  <section class="tab" id="myedu">
-    <div class="head">
-      <div>
-        <h1>🎓 [임직원 전용] 원클릭 수료증 간편 제출 센터</h1>
-        <div class="sub">이메일 링크 클릭 ➔ 로그인 없이 즉시 수료증 PDF/이미지 드래그 & 드롭 제출 ➔ 즉시 AI 검증 확인</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="badge b-purple">Magic Link 인증됨: 홍길동 (기획팀)</span>
-      </div>
-    </div>
-
-    <!-- Drag & Drop Upload Card for Employee -->
-    <div class="grid g2-1" style="margin-bottom:18px">
-      <div class="card">
-        <h3><span class="title-left">📤 수료증 PDF / 이미지 드래그 & 드롭 업로드</span></h3>
+      <!-- Creation & Excel Upload Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <div style="margin-bottom:12px">
-          <label style="font-size:12px;font-weight:600;color:var(--mute)">제출할 교육 과정 선택</label>
-          <select id="empCourseSel" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;margin-top:4px;font-family:inherit">
-            <option value="0">2026년 상반기 개인정보보호 교육 (기한: 2026-10-31)</option>
-            <option value="1">정보보안 기초 실무 (기한: 2026-10-15)</option>
-            <option value="2">직장 내 괴롭힘 및 성희롱 예방교육 (기한: 2026-11-15)</option>
-          </select>
-        </div>
-
-        <div class="drop-zone" id="certDropZone" style="padding:34px 20px">
-          <div class="icon">📄</div>
-          <p><b>수료증 파일(PDF, JPG, PNG)</b>을 여기에 끌어다 놓으세요</p>
-          <small>파일을 올리면 자동 OCR로 성명, 교육명, 수료일을 즉시 대조합니다</small>
-          <input type="file" id="certFileInput" accept=".pdf,image/*" onchange="handleCertUpload(event)">
-        </div>
-
-        <div id="uploadPreview" style="display:none;margin-top:14px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid var(--line);align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:24px">📑</span>
+        <!-- Step 1: Edu Create -->
+        <div class="border border-slate-200 rounded-xl p-6 bg-white space-y-4">
+          <div class="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-wider">
+            <span class="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-xs">1</span>
+            <span>교육 과정 생성 및 공문 등록</span>
+          </div>
+          <div class="space-y-3 text-xs">
             <div>
-              <b id="previewFileName" style="font-size:13px">cert_20261002.pdf</b>
-              <div style="font-size:11.5px;color:var(--mute)" id="previewFileSize">1.2 MB</div>
+              <label class="block font-medium text-slate-700 mb-1">교육 과정명</label>
+              <input type="text" id="inputEduName" value="2026년 상반기 개인정보보호 교육" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-blue-600 focus:border-blue-600">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">이수 기한 (D-Day)</label>
+                <input type="date" id="inputEduDeadline" value="2026-10-31" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-mono">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">자동 리마인더</label>
+                <select id="inputEduReminder" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs">
+                  <option>D-7, D-3, D-1, 당일 발송</option>
+                  <option>매주 월요일 정기 리마인더</option>
+                  <option>매일 아침 09:00 미제출자 독촉</option>
+                </select>
+              </div>
+            </div>
+            <div class="pt-2 flex items-center gap-2">
+              <input type="file" id="eduDocFile" class="text-xs text-slate-500 file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:rounded-md file:text-xs file:font-semibold">
+              <button onclick="processEduDocOCR()" class="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors">
+                📄 공문 OCR 등록
+              </button>
             </div>
           </div>
-          <button class="btn big success" id="btnSubmitCert" onclick="submitAndVerifyCert()">🚀 즉시 제출 및 AI 자동 검증</button>
+        </div>
+
+        <!-- Step 2: Excel Drop Zone -->
+        <div class="border border-slate-200 rounded-xl p-6 bg-white flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-wider mb-3">
+              <span class="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-xs">2</span>
+              <span>교육 대상자 엑셀 업로드 (.xlsx / .csv)</span>
+            </div>
+            
+            <div class="border-2 border-dashed border-slate-200 hover:border-blue-500 bg-slate-50/50 hover:bg-blue-50/20 rounded-xl p-6 text-center cursor-pointer transition-all relative">
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+              <div class="text-2xl mb-1">📊</div>
+              <div class="text-xs font-semibold text-slate-800">엑셀 명단 파일을 이곳에 드래그하세요</div>
+              <div class="text-[11px] text-slate-500 mt-1">사원번호, 성명, 부서 자동 매핑 및 Magic Link 일괄 생성</div>
+              <div class="mt-3 inline-block bg-blue-100 text-blue-700 font-mono text-[11px] font-semibold px-2.5 py-1 rounded-full" id="excelDropStatus">
+                14명 대상자 로드됨
+              </div>
+            </div>
+          </div>
+
+          <button onclick="sendMagicLinkBulk()" class="w-full border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+            <span>📧 개인별 원클릭 제출 Magic Link 일괄 발송 (SMTP)</span>
+          </button>
         </div>
       </div>
 
-      <!-- Instant Verification Receipt Card -->
-      <div class="card" style="background:#fafcff">
-        <h3><span class="title-left">🧾 즉시 제출 완료 & OCR 검증 영수증</span></h3>
-        <div id="receiptBox" style="text-align:center;padding:18px 10px;color:var(--mute)">
-          <div style="font-size:40px;margin-bottom:8px">🔍</div>
-          <p style="font-size:13.5px;color:var(--ink);font-weight:600">수료증 파일을 업로드해주세요</p>
-          <p style="font-size:12px;margin:0">업로드 즉시 AI가 수료증의 교육명과 이수자 명의를 자동 대조하여 접수증을 발급합니다.</p>
+      <!-- Active Course Banner -->
+      <div id="activeCourseBanner" class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-900 flex flex-wrap items-center justify-between gap-3"></div>
+
+      <!-- Step 4: Verification Table -->
+      <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+          <span class="font-bold text-slate-900 text-xs">수료증 파일 AI OCR 자동 검증 대장</span>
+          <button onclick="runBatchOCR()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+            ⚡ 미검증 건 AI 일괄 검증 실행
+          </button>
+        </div>
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-4 font-semibold">임직원</th>
+              <th class="py-3 px-4 font-semibold">소속 부서</th>
+              <th class="py-3 px-4 font-semibold">제출 수료증 교육명</th>
+              <th class="py-3 px-4 font-semibold">수료 일시</th>
+              <th class="py-3 px-4 font-semibold">성명 일치</th>
+              <th class="py-3 px-4 font-semibold">교육명 일치</th>
+              <th class="py-3 px-4 font-semibold">기한 내</th>
+              <th class="py-3 px-4 font-semibold">최종 판정</th>
+              <th class="py-3 px-4 font-semibold text-right">조치</th>
+            </tr>
+          </thead>
+          <tbody id="eduTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= TAB 4: 임직원 전용 - 수료증 제출 (User) ================= -->
+    <section id="pane-myedu" class="tab-content space-y-6">
+      <div class="border-b border-slate-200 pb-4">
+        <h2 class="text-lg font-bold text-slate-900">원클릭 수료증 간편 제출 센터</h2>
+        <p class="text-xs text-slate-500 mt-0.5">이메일 링크 클릭 ➔ 로그인 없이 수료증 파일 드래그 & 드롭 ➔ AI 즉시 검증 영수증</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Upload Card -->
+        <div class="lg:col-span-2 border border-slate-200 rounded-xl p-6 bg-white space-y-4">
+          <h3 class="font-bold text-slate-900 text-sm">수료증 파일 첨부</h3>
+          
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">제출할 교육 과정 선택</label>
+            <select id="empSelectCourse" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-blue-600 focus:border-blue-600">
+              <option value="0">2026년 상반기 개인정보보호 교육 (기한: 2026-10-31)</option>
+              <option value="1">정보보안 기초 실무 (기한: 2026-10-15)</option>
+              <option value="2">직장 내 괴롭힘 및 성희롱 예방교육 (기한: 2026-11-15)</option>
+            </select>
+          </div>
+
+          <div class="border-2 border-dashed border-blue-200 hover:border-blue-600 bg-blue-50/20 hover:bg-blue-50/40 rounded-xl p-8 text-center cursor-pointer transition-all relative">
+            <input type="file" id="empCertFile" accept=".pdf,image/*" onchange="handleCertUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+            <div class="text-3xl mb-2">📄</div>
+            <div class="text-xs font-bold text-slate-900">수료증 파일 (PDF, JPG, PNG)을 끌어다 놓으세요</div>
+            <div class="text-[11px] text-slate-500 mt-1">파일 업로드 즉시 AI가 성명, 교육명, 수료일을 자동 판독합니다</div>
+          </div>
+
+          <div id="empFilePreview" class="hidden p-4 border border-blue-200 bg-blue-50 rounded-xl flex items-center justify-between">
+            <div class="text-xs">
+              <b id="previewName" class="text-slate-900 font-semibold">cert.pdf</b>
+              <span id="previewSize" class="text-slate-500 ml-2">1.2 MB</span>
+            </div>
+            <button id="btnSubmitCertAction" onclick="submitAndVerifyCert()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+              🚀 즉시 제출 및 AI 자동 검증
+            </button>
+          </div>
+        </div>
+
+        <!-- Realtime Receipt Box -->
+        <div class="border border-slate-200 rounded-xl p-6 bg-slate-50/50 flex flex-col justify-between space-y-4">
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm mb-3">🧾 즉시 제출 완료 접수증</h3>
+            <div id="receiptResult" class="text-xs text-slate-500 space-y-2">
+              <p>수료증 파일을 제출하시면 실시간 OCR 대조 결과와 공식 승인 영수증이 발급됩니다.</p>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-400 font-mono text-center">GBSA Core Automation Engine</div>
         </div>
       </div>
-    </div>
 
-    <!-- My Education List -->
-    <div class="card">
-      <h3><span class="title-left">📋 나의 법정의무 및 사내 교육 이수 현황</span></h3>
-      <table>
-        <thead>
-          <tr><th>교육명</th><th>이수 기한</th><th>상태</th><th>비고 / 소명</th><th>원클릭 제출 링크</th></tr>
-        </thead>
-        <tbody id="myEduBody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ================= TAB 5: 임직원 전용 - 내 근태 현황 (사용자) ================= -->
-  <section class="tab" id="myatt">
-    <div class="head">
-      <div>
-        <h1>⏰ 나의 출퇴근 근태 기록</h1>
-        <div class="sub">세스코 지문인식기 연동 본인 기록 및 미인식 소명 신청</div>
+      <!-- Employee My Courses Table -->
+      <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+        <div class="p-4 border-b border-slate-200 font-bold text-xs text-slate-900 bg-slate-50/50">
+          나의 사내 법정의무교육 이수 현황
+        </div>
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-4 font-semibold">교육 과정명</th>
+              <th class="py-3 px-4 font-semibold">이수 기한</th>
+              <th class="py-3 px-4 font-semibold">상태</th>
+              <th class="py-3 px-4 font-semibold">비고</th>
+              <th class="py-3 px-4 font-semibold text-right">제출</th>
+            </tr>
+          </thead>
+          <tbody id="myEduTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
       </div>
-      <button class="btn" onclick="simRetagAttendance('홍길동')">📍 지문인식기 즉시 재태그 모의 실행</button>
-    </div>
+    </section>
 
-    <div class="card">
-      <table>
-        <thead>
-          <tr><th>일자</th><th>기준 출근</th><th>실제 출근</th><th>실제 퇴근</th><th>판정 상태</th><th style="text-align:right">소명 조치</th></tr>
-        </thead>
-        <tbody id="myAttBody"></tbody>
-      </table>
-    </div>
-  </section>
+    <!-- ================= TAB 5: 임직원 전용 - 내 근태 (User) ================= -->
+    <section id="pane-myatt" class="tab-content space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">나의 에스원 출퇴근 근태 기록</h2>
+          <p class="text-xs text-slate-500 mt-0.5">에스원 단말기 연동 본인 기록 조회 및 미인식 소명서 제출</p>
+        </div>
+        <button onclick="simRetagAttendance('홍길동')" class="border border-blue-600 text-blue-600 hover:bg-blue-50 text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+          📍 에스원 지문인식기 즉시 재태그 모의 실행
+        </button>
+      </div>
 
-</main>
+      <div class="border border-slate-200 rounded-xl overflow-hidden bg-white">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-4 font-semibold">일자</th>
+              <th class="py-3 px-4 font-semibold">기준 출근</th>
+              <th class="py-3 px-4 font-semibold">실제 출근 (에스원)</th>
+              <th class="py-3 px-4 font-semibold">실제 퇴근</th>
+              <th class="py-3 px-4 font-semibold">판정 상태</th>
+              <th class="py-3 px-4 font-semibold text-right">소명 조치</th>
+            </tr>
+          </thead>
+          <tbody id="myAttTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
 </div>
 
-<!-- ================= Mock Mailbox Modal ================= -->
-<div class="modal-bg" id="mailModal">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3 style="display:flex;align-items:center;gap:8px">📬 사내 메일 발송기 (SMTP Mock Inbox)</h3>
-      <button class="modal-close" onclick="closeMailModal()">×</button>
+<!-- ================= MODAL: MOCK EMAIL INBOX ================= -->
+<div id="mailModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-blue-600"></span>
+        <h3 class="font-bold text-sm text-slate-900">사내 모의 알림 메일함 (SMTP Mock Inbox)</h3>
+      </div>
+      <button onclick="closeMailModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
     </div>
-    <div style="font-size:12.5px;color:var(--mute);margin-bottom:14px">
-      자동화 코어 시스템에서 임직원에게 자동 발송된 긴급 근태 알림 및 교육 안내 메일 목록입니다.
-    </div>
-    <div id="mailList" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="p-5 overflow-y-auto space-y-3 flex-1" id="mailListContainer"></div>
   </div>
 </div>
 
-<!-- Toast Container -->
-<div id="toast"></div>
+<!-- ================= TOAST NOTIFICATION ================= -->
+<div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-xl text-xs font-medium shadow-xl translate-y-16 opacity-0 transition-all pointer-events-none z-50 flex items-center gap-2.5">
+  <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+  <span id="toastMsg">알림 메시지</span>
+</div>
 
+<!-- ================= JAVASCRIPT LOGIC ================= -->
 <script>
-/* ================= GLOBAL DATA & STATE ================= */
 const TODAY = "2026-10-02";
-document.getElementById('today').textContent = TODAY;
+document.getElementById('topDateBadge').textContent = `기준일: ${TODAY}`;
 
 let DOC = {
   name: "2026년 상반기 개인정보보호 교육",
   deadline: "2026-10-31",
   target: "전직원 (14명)",
-  reminderSchedule: "D-7, D-3, D-1, 당일 자동 발송"
+  reminderSchedule: "D-7, D-3, D-1, 당일 발송"
 };
 
 let emps = [
@@ -487,15 +544,15 @@ let emps = [
 ];
 
 let att = [
-  {n:"홍길동", d:"기획팀", std:"09:00", in:"08:55", out:"18:00", note:"08:55 정상 태그"},
+  {n:"홍길동", d:"기획팀", std:"09:00", in:"08:55", out:"18:00", note:"08:55 에스원 정상 태그"},
   {n:"김민수", d:"기획팀", std:"09:00", in:"08:52", out:"18:03", note:""},
   {n:"이서연", d:"기획팀", std:"09:00", in:"08:58", out:"", note:"퇴근 미체크"},
   {n:"박지훈", d:"기획팀", std:"10:00", in:"09:55", out:"19:01", note:""},
-  {n:"최유진", d:"운영팀", std:"09:00", in:"", out:"", note:"09:05 지문 미인식 경보 발송됨"},
+  {n:"최유진", d:"운영팀", std:"09:00", in:"", out:"", note:"09:05 에스원 미인식 경보 발송됨"},
   {n:"정태양", d:"운영팀", std:"09:00", in:"08:47", out:"18:00", note:""},
   {n:"강하늘", d:"운영팀", std:"09:00", in:"08:59", out:"18:10", note:""},
   {n:"윤서아", d:"개발팀", std:"09:00", in:"08:40", out:"18:20", note:""},
-  {n:"임도현", d:"개발팀", std:"09:00", in:"", out:"18:05", note:"09:05 지문 미인식 상태"},
+  {n:"임도현", d:"개발팀", std:"09:00", in:"", out:"18:05", note:"09:05 에스원 미인식 상태"},
   {n:"한지민", d:"개발팀", std:"09:00", in:"08:55", out:"", note:"퇴근 미인식"},
   {n:"오세훈", d:"개발팀", std:"09:00", in:"08:49", out:"18:15", note:""},
   {n:"송미래", d:"경영지원팀", std:"09:00", in:"08:57", out:"18:00", note:""},
@@ -506,9 +563,9 @@ let att = [
 let certs = [
   {n:"홍길동", d:"기획팀", nameOnCert:"홍길동", course:"2026년 상반기 개인정보보호 교육", at:"2026-09-28 14:20", state:"pass"},
   {n:"김민수", d:"기획팀", nameOnCert:"김민수", course:"2026년 상반기 개인정보보호 교육", at:"2026-09-29 10:05", state:"pass"},
-  {n:"이서연", d:"기획팀", nameOnCert:"이서연", course:"정보보안 기초 실무", at:"2026-09-30 16:40", state:"fail", reason:"교육명 불일치(정보보안 기초 실무)"},
+  {n:"이서연", d:"기획팀", nameOnCert:"이서연", course:"정보보안 기초 실무", at:"2026-09-30 16:40", state:"fail", reason:"교육명 불일치"},
   {n:"박지훈", d:"기획팀", nameOnCert:"박지원", course:"2026년 상반기 개인정보보호 교육", at:"2026-09-30 10:20", state:"fail", reason:"이름 불일치(박지원)"},
-  {n:"최유진", d:"운영팀", nameOnCert:"최유진", course:"2026년 상반기 개인정보보호 교육", at:"2026-11-05 09:10", state:"fail", reason:"이수 기한 초과(2026-11-05)"},
+  {n:"최유진", d:"운영팀", nameOnCert:"최유진", course:"2026년 상반기 개인정보보호 교육", at:"2026-11-05 09:10", state:"fail", reason:"이수 기한 초과"},
   {n:"정태양", d:"운영팀", nameOnCert:"정태양", course:"2026년 상반기 개인정보보호 교육", at:"2026-09-25 13:00", state:"pass"},
   {n:"윤서아", d:"개발팀", nameOnCert:"윤서아", course:"2026년 상반기 개인정보보호 교육", at:"2026-09-27 11:30", state:"pass"},
   {n:"임도현", d:"개발팀", nameOnCert:"임도현", course:"2026년 상반기 개인정보보호 교육", at:"2026-09-30 15:00", state:"wait"},
@@ -522,53 +579,47 @@ let mockMails = [
     id: 1,
     time: "09:05:02",
     to: "임도현 (limdh@company.kr)",
-    subject: "🚨 [긴급] 오늘 출근 지문이 인식되지 않았습니다. 기기를 다시 확인해 주세요!",
-    body: `안녕하세요, 임도현 님.\n\n금일(10/02) 09:00 출근 대상자이나 09:05 현재 세스코 지문인식기 출근 기록이 확인되지 않았습니다.\n\n지문 미인식 또는 기기 에러일 수 있으니 1층 출입 게이트 지문인식기에 즉시 재태그해 주시기 바랍니다.\n(재태그 완료 시 정상 출근으로 자동 전환되며 추가 독촉 알림이 차단됩니다.)`,
-    badge: "근태 미인식 경보"
+    subject: "🚨 [긴급] 오늘 출근 에스원 지문이 인식되지 않았습니다. 기기를 다시 확인해 주세요!",
+    body: `안녕하세요, 임도현 님.\n\n금일(10/02) 09:00 출근 대상자이나 09:05 현재 에스원 지문인식기 출근 기록이 확인되지 않았습니다.\n\n지문 미인식 또는 기기 에러일 수 있으니 1층 게이트 에스원 지문인식기에 즉시 재태그해 주시기 바랍니다.`,
+    tag: "에스원 근태 경보"
   },
   {
     id: 2,
     time: "09:00:00",
     to: "전체 임직원 (14명)",
-    subject: "📢 [교육 안내] 2026년 상반기 개인정보보호 교육 이수 및 수료증 제출 요청",
-    body: `임직원 여러분 안녕하십니까.\n\n2026년 상반기 법정의무교육(개인정보보호 교육) 이수 기한이 2026-10-31까지입니다.\n별도 로그인 없이 아래 원클릭 전용 링크를 누르시면 수료증 파일을 드래그 & 드롭하여 즉시 제출하실 수 있습니다.\n\n🔗 전용 원클릭 제출 링크: https://reminder.gbsa.kr/submit?token=tk_emp_direct`,
-    badge: "교육 공지"
-  },
-  {
-    id: 3,
-    time: "08:00:15",
-    to: "이서연 (leesy@company.kr)",
-    subject: "↩ [재제출 요망] 개인정보보호 교육 수료증 검증 결과 반려 안내",
-    body: `이서연 님, 제출해 주신 수료증 OCR 검증 결과 '교육명 불일치(정보보안 기초 실무)' 사유로 반려되었습니다.\n올바른 개인정보보호 교육 수료증으로 재제출 부탁드립니다.`,
-    badge: "수료증 반려"
+    subject: "📢 [교육 안내] 2026년 상반기 개인정보보호 교육 이수 및 수료증 제출",
+    body: `임직원 여러분, 아래 개인별 원클릭 전용 링크를 클릭하시면 별도 로그인 없이 수료증을 즉시 제출하실 수 있습니다.\n\n🔗 https://reminder.gbsa.kr/submit?token=tk_emp_direct`,
+    tag: "교육 공지"
   }
 ];
 
 let myEduList = [
-  {name:"2026년 상반기 개인정보보호 교육", deadline:"2026-10-31", state:"ok", note:"2026-09-28 제출 · AI OCR 승인 완료", certUrl:"#"},
-  {name:"정보보안 기초 실무", deadline:"2026-10-15", state:"none", note:"수료증 미제출 (D-13)", certUrl:""},
-  {name:"직장 내 괴롭힘 및 성희롱 예방교육", deadline:"2026-11-15", state:"none", note:"수료증 미제출 (D-44)", certUrl:""}
+  {name:"2026년 상반기 개인정보보호 교육", deadline:"2026-10-31", state:"ok", note:"2026-09-28 제출 · AI 승인 완료"},
+  {name:"정보보안 기초 실무", deadline:"2026-10-15", state:"none", note:"수료증 미제출 (D-13)"},
+  {name:"직장 내 괴롭힘 및 성희롱 예방교육", deadline:"2026-11-15", state:"none", note:"수료증 미제출 (D-44)"}
 ];
 
 let myAttList = [
-  {date:"2026-10-02", std:"09:00", in:"08:55", out:"18:00", note:"08:55 정상 지문 태그 인식 완료"},
+  {date:"2026-10-02", std:"09:00", in:"08:55", out:"18:00", note:"08:55 에스원 정상 인식"},
   {date:"2026-10-01", std:"09:00", in:"08:50", out:"18:04", note:"정상"},
-  {date:"2026-09-30", std:"09:00", in:"09:12", out:"18:30", note:"지각 (사유: 외근)"},
-  {date:"2026-09-29", std:"09:00", in:"08:47", out:"", note:"퇴근 미인식 (소명 접수됨)"},
+  {date:"2026-09-30", std:"09:00", in:"09:12", out:"18:30", note:"지각 (외근 사유 등록)"},
+  {date:"2026-09-29", std:"09:00", in:"08:47", out:"", note:"퇴근 미인식 (소명 접수)"},
   {date:"2026-09-28", std:"09:00", in:"08:55", out:"18:02", note:"정상"}
 ];
 
 const excusedList = {};
 
-/* ================= HELPER FUNCTIONS ================= */
+/* ================= UTILITY HELPERS ================= */
 const $ = id => document.getElementById(id);
 
 function toast(msg) {
   const t = $('toast');
-  t.innerHTML = `<span>🔔</span> <span>${msg}</span>`;
-  t.classList.add('show');
+  $('toastMsg').textContent = msg;
+  t.classList.remove('translate-y-16', 'opacity-0');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove('show'), 3200);
+  toast.timer = setTimeout(() => {
+    t.classList.add('translate-y-16', 'opacity-0');
+  }, 3000);
 }
 
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
@@ -576,7 +627,7 @@ const getDepts = () => [...new Set(emps.map(e => e.d))];
 
 function attStatus(a) {
   const s = [];
-  if (!a.in) s.push("미인식/지각");
+  if (!a.in) s.push("출근 미인식");
   if (!a.out) s.push("퇴근 미인식");
   return s;
 }
@@ -586,9 +637,9 @@ function validateCert(c) {
   const courseOk = c.course.includes("개인정보보호");
   const dateOk = c.at ? (c.at.slice(0, 10) <= DOC.deadline) : true;
   const reasons = [];
-  if (!nameOk) reasons.push(`이름 불일치(${c.nameOnCert})`);
-  if (!courseOk) reasons.push(`교육명 불일치(${c.course})`);
-  if (!dateOk) reasons.push(`이수 기한 초과(${c.at.slice(0, 10)})`);
+  if (!nameOk) reasons.push(`성명 불일치(${c.nameOnCert})`);
+  if (!courseOk) reasons.push(`교육명 불일치`);
+  if (!dateOk) reasons.push(`기한 초과`);
   return { nameOk, courseOk, dateOk, pass: !reasons.length, reason: reasons.join(", ") };
 }
 
@@ -600,312 +651,260 @@ function getEduStateForEmp(name) {
   return { k: "bad", label: "반려" };
 }
 
-function appendSimLog(time, comp, text, type) {
-  const box = $('simLog');
-  const typeClass = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : type === 'mail' ? 'log-mail' : type === 'device' ? 'log-device' : 'log-engine';
-  const div = document.createElement('div');
-  div.className = 'log-line';
-  div.innerHTML = `<span class="log-time">[${time}]</span> <span class="${typeClass}">[${comp}]</span> ${text}`;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
+/* ================= RENDER VIEWS (Calendly Aesthetic) ================= */
 
-/* ================= RENDER FUNCTIONS ================= */
-
-// 1. Dashboard
-function renderDash() {
+function renderDashboard() {
   const abn = att.filter(a => attStatus(a).length);
   const done = emps.filter(e => getEduStateForEmp(e.n).k === "ok").length;
   const rej = emps.filter(e => getEduStateForEmp(e.n).k === "bad").length;
   const wait = emps.filter(e => getEduStateForEmp(e.n).k === "wait").length;
   const none = emps.length - done - rej - wait;
 
-  $('kpis').innerHTML = [
-    ["전체 대상 임직원", emps.length + "명", "금일 모니터링 대상자"],
-    ["근태 실시간 이상", abn.length + "명", pct(abn.length, emps.length) + "% · 09:05 미인식/퇴근미인식"],
-    ["교육 수료 완료율", pct(done, emps.length) + "%", `${done}/${emps.length}명 승인 완료 (검증대기 ${wait})`],
-    ["미수료 · 재제출 요망", (rej + none) + "명", `반려 ${rej}명 · 미제출 ${none}명`]
+  // 1. KPI Cards
+  $('kpiContainer').innerHTML = [
+    { label: "전체 대상 임직원", num: `${emps.length}명`, sub: "모니터링 대상자", color: "text-slate-900", border: "border-slate-200" },
+    { label: "에스원 근태 이상", num: `${abn.length}명`, sub: `${pct(abn.length, emps.length)}% 지각/미인식`, color: "text-rose-600", border: "border-rose-200 bg-rose-50/20" },
+    { label: "교육 수료 완료율", num: `${pct(done, emps.length)}%`, sub: `${done}/${emps.length}명 승인 완료`, color: "text-blue-600", border: "border-blue-200 bg-blue-50/20" },
+    { label: "미수료 / 반려", num: `${rej + none}명`, sub: `반려 ${rej} · 미제출 ${none}`, color: "text-amber-600", border: "border-amber-200 bg-amber-50/20" }
   ].map(k => `
-    <div class="card kpi">
-      <div class="l">${k[0]}</div>
-      <div class="n">${k[1]}</div>
-      <div class="foot">${k[2]}</div>
+    <div class="border ${k.border} rounded-xl p-5 bg-white shadow-sm">
+      <div class="text-xs font-semibold text-slate-500">${k.label}</div>
+      <div class="text-2xl font-extrabold ${k.color} my-1.5">${k.num}</div>
+      <div class="text-[11px] text-slate-400 font-medium">${k.sub}</div>
     </div>
   `).join("");
 
+  // 2. Dept Attendance Bars
   const depts = getDepts();
-  $('deptAtt').innerHTML = depts.map(d => {
+  $('deptAttBars').innerHTML = depts.map(d => {
     const all = att.filter(a => a.d === d);
     const ab = all.filter(a => attStatus(a).length).length;
     const p = pct(ab, all.length);
-    return `<div class="row"><b>${d}</b><div class="bar"><i class="${p >= 35 ? 'r' : 'w'}" style="width:${p}%"></i></div><span>${p}%</span></div>`;
+    return `
+      <div class="flex items-center gap-3 text-xs">
+        <span class="w-16 font-semibold text-slate-700">${d}</span>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full rounded-full ${p >= 35 ? 'bg-rose-500' : 'bg-blue-600'}" style="width: ${p}%"></div>
+        </div>
+        <span class="w-10 text-right font-medium text-slate-500">${p}%</span>
+      </div>
+    `;
   }).join("");
 
-  $('deptEdu').innerHTML = depts.map(d => {
+  // 3. Dept Education Bars
+  $('deptEduBars').innerHTML = depts.map(d => {
     const all = emps.filter(e => e.d === d);
     const ok = all.filter(e => getEduStateForEmp(e.n).k === "ok").length;
     const p = pct(ok, all.length);
-    return `<div class="row"><b>${d}</b><div class="bar"><i class="g" style="width:${p}%"></i></div><span>${p}%</span></div>`;
-  }).join("");
-
-  $('liveAtt').innerHTML = abn.map(a => `
-    <tr>
-      <td><b>${a.n}</b></td>
-      <td>${a.d}</td>
-      <td>${a.std}</td>
-      <td>${attStatus(a).map(s => `<span class="badge ${s === '퇴근 미인식' ? 'b-warn' : 'b-bad'}">${s}</span>`).join(" ")}</td>
-      <td style="font-size:12px;color:var(--mute)">${a.note || '출결 이상 감지'}</td>
-    </tr>
-  `).join("");
-
-  const pend = emps.filter(e => getEduStateForEmp(e.n).k !== "ok");
-  $('liveEdu').innerHTML = pend.map(e => {
-    const s = getEduStateForEmp(e.n);
     return `
-      <tr>
-        <td><b>${e.n}</b></td>
-        <td>${e.d}</td>
-        <td><span class="badge ${s.k === 'bad' ? 'b-bad' : s.k === 'wait' ? 'b-purple' : 'b-warn'}">${s.label}</span></td>
-        <td><button class="btn out" style="padding:3px 8px;font-size:11px" onclick="copyMagicLink('${e.n}','${e.token}')">🔗 Magic Link 복사</button></td>
-      </tr>
+      <div class="flex items-center gap-3 text-xs">
+        <span class="w-16 font-semibold text-slate-700">${d}</span>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full rounded-full bg-emerald-500" style="width: ${p}%"></div>
+        </div>
+        <span class="w-10 text-right font-medium text-slate-500">${p}%</span>
+      </div>
     `;
   }).join("");
 
-  $('bulk').disabled = !pend.length;
+  // 4. Live Attendance Cards (Calendly Card Rows with Left Accent Color)
+  $('dashLiveAttCards').innerHTML = abn.map(a => `
+    <div class="border border-slate-200 rounded-xl p-4 bg-white flex items-center justify-between hover:border-slate-300 transition-all shadow-sm">
+      <div class="flex items-center gap-4">
+        <div class="w-1.5 h-10 rounded-full bg-rose-500"></div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-900 text-sm">${a.n}</span>
+            <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${a.d}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1 flex items-center gap-3">
+            <span>기준: <b>${a.std}</b></span>
+            <span>·</span>
+            <span>에스원 기록: <b class="text-rose-600">${a.in || '09:05 미인식 경보'}</b></span>
+            <span>·</span>
+            <span>${a.note || '출결 점검 요망'}</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="sendIndividualAttAlert('${a.n}')" class="border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+        재태그 알림 발송
+      </button>
+    </div>
+  `).join("");
+
+  // 5. Live Education Pending Cards (Calendly Card Rows)
+  const pend = emps.filter(e => getEduStateForEmp(e.n).k !== "ok");
+  const colorAccents = ['bg-purple-500', 'bg-amber-500', 'bg-blue-500', 'bg-rose-500'];
+  $('dashLiveEduCards').innerHTML = pend.map((e, idx) => {
+    const s = getEduStateForEmp(e.n);
+    const color = colorAccents[idx % colorAccents.length];
+    return `
+      <div class="border border-slate-200 rounded-xl p-4 bg-white flex items-center justify-between hover:border-slate-300 transition-all shadow-sm">
+        <div class="flex items-center gap-4">
+          <div class="w-1.5 h-10 rounded-full ${color}"></div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-900 text-sm">${e.n}</span>
+              <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${e.d}</span>
+              <span class="text-[11px] font-semibold ${s.k === 'bad' ? 'text-rose-600 bg-rose-50' : 'text-amber-600 bg-amber-50'} px-2 py-0.5 rounded-full">${s.label}</span>
+            </div>
+            <div class="text-xs text-slate-500 mt-1">과정: ${DOC.name} (마감: ${DOC.deadline})</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyMagicLink('${e.n}','${e.token}')" class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors">
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <span>Copy link</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
-// 2. Attendance Management & Simulator
-function renderAtt() {
-  $('attBody').innerHTML = att.map(a => {
+function renderAttendanceTable() {
+  $('attTableEmpCount').textContent = `${att.length}명 관리 중`;
+  $('attTableBody').innerHTML = att.map(a => {
     const st = attStatus(a);
     const isOk = st.length === 0;
     return `
-      <tr>
-        <td><b>${a.n}</b></td>
-        <td>${a.d}</td>
-        <td>${a.std}</td>
-        <td>${a.in ? `<span class="badge b-ok">${a.in}</span>` : '<span class="reason">미인식 (09:05 경보)</span>'}</td>
-        <td>${a.out ? `<span class="badge b-ok">${a.out}</span>` : (a.in ? '<span class="badge b-warn">근무 중</span>' : '<span class="reason">기록 없음</span>')}</td>
-        <td>${isOk ? '<span class="badge b-ok">정상 인증</span>' : st.map(s => `<span class="badge ${s === '퇴근 미인식' ? 'b-warn' : 'b-bad'}">${s}</span>`).join(" ")}</td>
-        <td style="text-align:right">
-          ${isOk ? '<span style="color:var(--mute);font-size:12px">-</span>' :
-            `<button class="btn out" style="padding:4px 10px;font-size:12px" onclick="sendIndividualAttAlert('${a.n}')">🚨 긴급 재태그 요청 메일</button>`}
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="py-3 px-4 font-bold text-slate-900">${a.n}</td>
+        <td class="py-3 px-4 text-slate-600">${a.d}</td>
+        <td class="py-3 px-4 font-mono text-slate-600">${a.std}</td>
+        <td class="py-3 px-4 font-mono font-medium">${a.in ? `<span class="text-slate-900">${a.in}</span>` : '<span class="text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded">09:05 미인식</span>'}</td>
+        <td class="py-3 px-4 font-mono text-slate-500">${a.out ? a.out : (a.in ? '<span class="text-blue-600 font-sans">근무 중</span>' : '-')}</td>
+        <td class="py-3 px-4">
+          ${isOk ? '<span class="bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full text-[11px]">정상 인증</span>' :
+            st.map(s => `<span class="bg-rose-50 text-rose-700 font-semibold px-2 py-0.5 rounded-full text-[11px]">${s}</span>`).join(" ")}
+        </td>
+        <td class="py-3 px-4 text-right">
+          ${isOk ? '<span class="text-slate-400 text-xs">-</span>' :
+            `<button onclick="sendIndividualAttAlert('${a.n}')" class="border border-rose-300 text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded-md text-xs font-medium transition-colors">재태그 요청</button>`}
         </td>
       </tr>
     `;
   }).join("");
 }
 
-// 3. Education Admin & OCR
-function renderEdu() {
-  $('doc').innerHTML = `
-    <b>📌 현재 활성화 교육</b> · 교육명: <b>${DOC.name}</b> · 이수 기한: <b>${DOC.deadline}</b> · 대상자: <b>${DOC.target}</b> · 자동 리마인더: <b>${DOC.reminderSchedule}</b>
+function renderEducationTable() {
+  $('activeCourseBanner').innerHTML = `
+    <div class="flex items-center gap-3">
+      <span class="font-bold text-blue-900">현재 활성 교육:</span>
+      <span class="font-semibold text-blue-950">${DOC.name}</span>
+      <span class="text-blue-300">|</span>
+      <span>이수 기한: <b>${DOC.deadline}</b></span>
+    </div>
+    <div class="text-blue-700 font-medium">리마인더: ${DOC.reminderSchedule}</div>
   `;
-  $('currentEduTitle').textContent = DOC.name;
 
-  const mark = ok => ok ? '<span style="color:var(--ok);font-weight:bold">✔ 일치</span>' : '<span style="color:var(--bad);font-weight:bold">✘ 불일치</span>';
-
-  $('eduBody').innerHTML = certs.map((c, i) => {
+  $('eduTableBody').innerHTML = certs.map((c, i) => {
     const v = validateCert(c);
-    let resBadge, actBtn;
+    let resultCol, actionCol;
 
     if (c.state === "wait") {
-      resBadge = '<span class="badge b-purple">AI 검증 대기</span>';
-      actBtn = `<button class="btn" style="padding:4px 10px;font-size:12px" onclick="scanSingleCert(${i})">🔍 OCR 즉시 검증</button>`;
+      resultCol = '<span class="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-full text-[11px]">검증 대기</span>';
+      actionCol = `<button onclick="scanSingleCert(${i})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition-colors">OCR 검증</button>`;
     } else if (c.state === "scan") {
-      resBadge = '<span class="badge b-warn">⏳ AI 판독 중…</span>';
-      actBtn = `<button class="btn" disabled style="padding:4px 10px;font-size:12px">스캔 중</button>`;
+      resultCol = '<span class="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full text-[11px] animate-pulse">AI 분석 중</span>';
+      actionCol = `<span class="text-slate-400 text-xs">스캔 중...</span>`;
     } else if (c.state === "pass") {
-      resBadge = '<span class="badge b-ok">[Pass] 자동 승인</span>';
-      actBtn = `<span style="color:var(--ok);font-size:12px">✔ 검증 완료</span>`;
+      resultCol = '<span class="bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full text-[11px]">승인 완료 (PASS)</span>';
+      actionCol = `<span class="text-emerald-600 text-xs font-bold">✔ 승인됨</span>`;
     } else {
-      resBadge = `<span class="badge b-bad">[Fail] 반려</span><div class="reason">${c.reason || v.reason}</div>`;
-      actBtn = c.sent ?
-        `<span class="badge b-ok" style="font-size:11px">재제출 메일 발송됨</span>` :
-        `<button class="btn danger" style="padding:4px 10px;font-size:12px" onclick="sendCertRejectMail(${i})">↩ 재제출 독촉 발송</button>`;
+      resultCol = `<span class="bg-rose-50 text-rose-700 font-semibold px-2 py-0.5 rounded-full text-[11px]">반려 (FAIL)</span><div class="text-[11px] text-rose-600 mt-0.5">${c.reason || v.reason}</div>`;
+      actionCol = c.sent ? '<span class="text-slate-400 text-xs">발송 완료</span>' :
+        `<button onclick="sendCertRejectMail(${i})" class="border border-rose-300 text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded-md text-xs font-medium transition-colors">재제출 독촉</button>`;
     }
 
     return `
-      <tr>
-        <td><b>${c.nameOnCert || c.n}</b></td>
-        <td>${c.d}</td>
-        <td>${c.course}</td>
-        <td>${c.at || '-'}</td>
-        <td>${c.state === 'wait' ? '-' : mark(v.nameOk)}</td>
-        <td>${c.state === 'wait' ? '-' : mark(v.courseOk)}</td>
-        <td>${c.state === 'wait' ? '-' : mark(v.dateOk)}</td>
-        <td>${resBadge}</td>
-        <td style="text-align:right">${actBtn}</td>
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="py-3 px-4 font-bold text-slate-900">${c.nameOnCert || c.n}</td>
+        <td class="py-3 px-4 text-slate-600">${c.d}</td>
+        <td class="py-3 px-4 text-slate-800">${c.course}</td>
+        <td class="py-3 px-4 font-mono text-slate-500">${c.at || '-'}</td>
+        <td class="py-3 px-4 font-mono">${c.state === 'wait' ? '-' : (v.nameOk ? '<span class="text-emerald-600 font-bold">✔</span>' : '<span class="text-rose-600 font-bold">✘</span>')}</td>
+        <td class="py-3 px-4 font-mono">${c.state === 'wait' ? '-' : (v.courseOk ? '<span class="text-emerald-600 font-bold">✔</span>' : '<span class="text-rose-600 font-bold">✘</span>')}</td>
+        <td class="py-3 px-4 font-mono">${c.state === 'wait' ? '-' : (v.dateOk ? '<span class="text-emerald-600 font-bold">✔</span>' : '<span class="text-rose-600 font-bold">✘</span>')}</td>
+        <td class="py-3 px-4">${resultCol}</td>
+        <td class="py-3 px-4 text-right">${actionCol}</td>
       </tr>
     `;
   }).join("");
 }
 
-// 4. Employee Views
-function renderMyViews() {
-  // My Education
-  $('myEduBody').innerHTML = myEduList.map((e, idx) => {
-    const stateBadge = e.state === 'ok' ? '<span class="badge b-ok">수료 승인 완료</span>' :
-                       e.state === 'wait' ? '<span class="badge b-purple">AI 자동 검증 대기</span>' :
-                       '<span class="badge b-warn">수료증 제출 필요</span>';
-    return `
-      <tr>
-        <td><b>${e.name}</b></td>
-        <td>${e.deadline}</td>
-        <td>${stateBadge}</td>
-        <td style="font-size:12px;color:var(--mute)">${e.note}</td>
-        <td><a href="#myedu" class="badge b-pri" style="text-decoration:none" onclick="selectCourseForEmp(${idx})">⚡ 즉시 업로드</a></td>
-      </tr>
-    `;
-  }).join("");
+function renderEmployeeViews() {
+  $('myEduTableBody').innerHTML = myEduList.map((e, idx) => `
+    <tr class="hover:bg-slate-50/80 transition-colors">
+      <td class="py-3 px-4 font-bold text-slate-900">${e.name}</td>
+      <td class="py-3 px-4 font-mono text-slate-500">${e.deadline}</td>
+      <td class="py-3 px-4">
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold ${e.state === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">
+          ${e.state === 'ok' ? '수료 승인' : '제출 필요'}
+        </span>
+      </td>
+      <td class="py-3 px-4 text-slate-500 text-xs">${e.note}</td>
+      <td class="py-3 px-4 text-right">
+        <button onclick="selectCourseForSubmission(${idx})" class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-md text-xs font-semibold transition-colors">
+          파일 업로드
+        </button>
+      </td>
+    </tr>
+  `).join("");
 
-  // My Attendance
-  $('myAttBody').innerHTML = myAttList.map((a, i) => {
+  $('myAttTableBody').innerHTML = myAttList.map((a, i) => {
     const isBad = !a.in || a.in > "09:00";
     return `
-      <tr>
-        <td><b>${a.date}</b></td>
-        <td>${a.std}</td>
-        <td>${a.in ? `<span class="badge b-ok">${a.in}</span>` : '<span class="reason">미인식</span>'}</td>
-        <td>${a.out ? `<span class="badge b-ok">${a.out}</span>` : (a.in ? '<span class="badge b-warn">근무 중</span>' : '<span class="reason">기록 없음</span>')}</td>
-        <td>${isBad ? '<span class="badge b-bad">지각 / 미인식</span>' : '<span class="badge b-ok">정상 출근</span>'}</td>
-        <td style="text-align:right">
-          ${!isBad ? '<span style="color:var(--ok);font-size:12px">정상 인증</span>' :
-            excusedList[i] ? `<span class="badge b-ok">소명 접수: ${excusedList[i]}</span>` :
-            `<button class="btn out" style="padding:4px 10px;font-size:12px" onclick="submitAttExcuse(${i})">📝 소명 사유 제출</button>`}
+      <tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="py-3 px-4 font-mono font-bold text-slate-900">${a.date}</td>
+        <td class="py-3 px-4 font-mono text-slate-500">${a.std}</td>
+        <td class="py-3 px-4 font-mono font-medium">${a.in ? `<span class="text-slate-900">${a.in}</span>` : '<span class="text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded">에스원 미인식</span>'}</td>
+        <td class="py-3 px-4 font-mono text-slate-500">${a.out || '-'}</td>
+        <td class="py-3 px-4">
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold ${isBad ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}">
+            ${isBad ? '지각/미인식' : '정상 출근'}
+          </span>
+        </td>
+        <td class="py-3 px-4 text-right">
+          ${!isBad ? '<span class="text-slate-400 text-xs">-</span>' :
+            excusedList[i] ? `<span class="text-xs text-blue-600 font-semibold">소명 접수됨</span>` :
+            `<button onclick="submitAttExcuse(${i})" class="border border-slate-300 text-slate-700 hover:bg-slate-50 px-3 py-1 rounded-md text-xs font-medium transition-colors">소명서 제출</button>`}
         </td>
       </tr>
     `;
   }).join("");
 }
 
-/* ================= SIMULATOR & INTERACTION LOGIC ================= */
-
-// 시나리오 1: 정상 출근 (08:55 태그)
-function simNormalAttendance(name) {
-  $('stepBox1').classList.add('active');
-  setTimeout(() => $('stepBox1').classList.remove('active'), 2000);
-
-  appendSimLog("08:55:00", "Device", `${name} 지문인식기 태그 성공 (세스코 단말기 #01)`, "device");
-  appendSimLog("08:55:01", "Engine", `08:55 태그 기록 수신 및 동기화 완료: ${name}`, "engine");
-  appendSimLog("08:55:02", "Engine", `[정상 출근] 판정 처리 ➔ 알림 발송 생략 (Skip Notification)`, "ok");
-
-  const target = att.find(x => x.n === name);
-  if (target) {
-    target.in = "08:55";
-    target.note = "08:55 정상 지문 태그";
-  }
-  renderAtt();
-  renderDash();
-  toast(`✔ ${name} 님 정상 출근 태그 (08:55) 인식 완료 · 이상 알림 생략`);
-}
-
-// 시나리오 2-A: 지문 미인식 (09:05 감지) -> 긴급 메일 발송
-function simMissAttendanceAlert(name) {
-  $('stepBox2').classList.add('active');
-  setTimeout(() => $('stepBox2').classList.remove('active'), 2500);
-
-  appendSimLog("09:05:00", "Engine", `APScheduler 스케줄러 점검: 09:00 출근자 중 09:05까지 미태그자 감지!`, "err");
-  appendSimLog("09:05:01", "Engine", `[미인식 이상 감지] 대상: ${name}(개발팀) ➔ 출근 미인식 긴급 알림 트리거`, "err");
-  appendSimLog("09:05:02", "Mail", `사내 메일 발송기: "[긴급] 오늘 출근 지문이 인식되지 않았습니다" ➔ ${name} 즉시 발송`, "mail");
-
-  const newMail = {
-    id: Date.now(),
-    time: "09:05:02",
-    to: `${name} (limdh@company.kr)`,
-    subject: "🚨 [긴급] 오늘 출근 지문이 인식되지 않았습니다. 기기를 다시 확인해 주세요!",
-    body: `안녕하세요, ${name} 님.\n\n금일(10/02) 09:00 출근 대상자이나 09:05 현재 지문인식 기록이 누락되었습니다.\n단말기 미인식 또는 기기 에러일 수 있으니 1층 출입구 지문인식기에 즉시 재태그해 주시기 바랍니다.\n\n재태그 즉시 [정상 인증]으로 자동 전환되며 추가 독촉이 차단됩니다.`,
-    badge: "근태 미인식 긴급"
-  };
-  mockMails.unshift(newMail);
-  updateMailCount();
-
-  const target = att.find(x => x.n === name);
-  if (target) {
-    target.in = "";
-    target.note = "09:05 긴급 독촉 메일 발송됨";
-  }
-  renderAtt();
-  renderDash();
-  toast(`🚨 [09:05 감지] ${name} 님에게 긴급 지문 재태그 알림 메일이 발송되었습니다!`);
-}
-
-// 시나리오 2-B: 메일 확인 후 09:07 지문 재태그 인식 -> 정상 인증 전환
-function simRetagAttendance(name) {
-  $('stepBox3').classList.add('active');
-  setTimeout(() => $('stepBox3').classList.remove('active'), 2500);
-
-  appendSimLog("09:07:18", "Device", `${name} 메일 확인 후 세스코 지문인식기 재태그 완료!`, "device");
-  appendSimLog("09:07:19", "Engine", `09:07 지문 태그 인식 신호 수신 ➔ 실시간 기록 업데이트`, "engine");
-  appendSimLog("09:07:20", "Engine", `[정상 인증]으로 즉시 전환 완료! (추가 독촉 알림 자동 차단)`, "ok");
-
-  const target = att.find(x => x.n === name);
-  if (target) {
-    target.in = "09:07";
-    target.note = "09:07 재태그 인식 (정상 전환)";
-  }
-  
-  if (name === "홍길동") {
-    myAttList[0].in = "09:07";
-    myAttList[0].note = "09:07 지문 재태그 완료 (정상)";
-    renderMyViews();
-  }
-
-  renderAtt();
-  renderDash();
-  toast(`✔ [09:07 재태그 인식] ${name} 님 정상 인증으로 즉시 전환되어 추가 알림이 차단되었습니다!`);
-}
-
-function resetAttSimulator() {
-  att.find(x => x.n === "임도현").in = "";
-  att.find(x => x.n === "홍길동").in = "08:55";
-  appendSimLog("09:00:00", "Engine", "시뮬레이터 상태가 리셋되었습니다.", "engine");
-  renderAtt();
-  renderDash();
-  toast("시뮬레이터가 초기화되었습니다.");
-}
-
-function sendIndividualAttAlert(name) {
-  simMissAttendanceAlert(name);
-}
-
-function triggerAttendanceEmergencyNotice() {
-  const miss = att.filter(a => !a.in);
-  toast(`🚨 출근 미인식자 ${miss.length}명에게 세스코 지문 재태그 긴급 요청을 발송했습니다.`);
-}
-
-/* ================= EDUCATION & OCR PROCESS ================= */
+/* ================= ACTIONS & EVENT HANDLERS ================= */
 
 function processEduDocOCR() {
-  const docName = $('newEduName').value;
-  const deadline = $('newEduDeadline').value;
-  const remOpt = $('newEduReminderOpt').value;
-
-  DOC.name = docName;
+  const name = $('inputEduName').value;
+  const deadline = $('inputEduDeadline').value;
+  const rem = $('inputEduReminder').value;
+  DOC.name = name;
   DOC.deadline = deadline;
-  DOC.reminderSchedule = remOpt;
-
-  renderEdu();
-  renderDash();
-  toast(`📄 공문 OCR 인식 완료: [${docName}] 교육 건이 등록되었으며 수강 알림이 배포되었습니다.`);
+  DOC.reminderSchedule = rem;
+  renderEducationTable();
+  renderDashboard();
+  toast(`공문 OCR 등록 완료: [${name}]`);
 }
 
 function handleExcelUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  $('excelUploadInfo').innerHTML = `<b>${file.name}</b> 업로드 완료 (${emps.length}명 명단 & Magic Link 생성됨)`;
-  toast(`📊 [엑셀 업로드 성공] ${emps.length}명의 교육 대상자 명단과 전용 링크가 자동 생성되었습니다.`);
+  const f = e.target.files[0];
+  if (!f) return;
+  $('excelDropStatus').textContent = `${f.name} (${emps.length}명 매핑 완료)`;
+  toast(`엑셀 파일 업로드 성공: ${emps.length}명 Magic Link 생성 완료`);
 }
 
 function sendMagicLinkBulk() {
-  toast(`📨 전 직원 ${emps.length}명에게 '로그인 불필요 전용 수료증 제출 Magic Link'가 SMTP로 발송되었습니다.`);
+  toast(`전체 대상자 ${emps.length}명에게 원클릭 Magic Link를 발송했습니다.`);
   mockMails.unshift({
     id: Date.now(),
     time: "10:00:00",
-    to: `전체 대상자 (${emps.length}명)`,
-    subject: `🔗 [원클릭 제출] "${DOC.name}" 수료증 간편 제출 링크 안내`,
-    body: `임직원 여러분, 아래 개인별 고유 전용 링크를 클릭하시면 별도 로그인 없이 수료증을 즉시 제출하고 실시간 검증을 받으실 수 있습니다.\n\n🔗 https://reminder.gbsa.kr/submit?token=emp_bulk_auth`,
-    badge: "Magic Link 발송"
+    to: `전체 임직원 (${emps.length}명)`,
+    subject: `🔗 [원클릭 제출] "${DOC.name}" 수료증 간편 제출 링크`,
+    body: `임직원 여러분,\n로그인 없이 바로 제출하실 수 있는 전용 링크입니다.\nhttps://reminder.gbsa.kr/submit?token=auth_direct_all`,
+    tag: "Magic Link"
   });
   updateMailCount();
 }
@@ -913,231 +912,275 @@ function sendMagicLinkBulk() {
 function copyMagicLink(name, token) {
   const link = `https://reminder.gbsa.kr/submit?token=${token}&user=${encodeURIComponent(name)}`;
   navigator.clipboard ? navigator.clipboard.writeText(link) : null;
-  toast(`🔗 [${name}] 전용 원클릭 제출 링크가 클립보드에 복사되었습니다!`);
+  toast(`${name} 전용 Magic Link 복사 완료`);
 }
 
 function scanSingleCert(index) {
   const c = certs[index];
   c.state = "scan";
-  renderEdu();
+  renderEducationTable();
   setTimeout(() => {
     const v = validateCert(c);
     c.state = v.pass ? "pass" : "fail";
     c.reason = v.reason;
-    renderEdu();
-    renderDash();
-    toast(v.pass ? `✔ ${c.n} 님 수료증 OCR 검증 승인 완료` : `❌ ${c.n} 님 수료증 반려: ${v.reason}`);
-  }, 1200);
+    renderEducationTable();
+    renderDashboard();
+    toast(v.pass ? `${c.n} 수료증 승인 완료` : `${c.n} 수료증 반려: ${v.reason}`);
+  }, 1000);
 }
 
 function runBatchOCR() {
   const waitList = certs.filter(c => c.state === "wait");
   if (!waitList.length) {
-    toast("현재 대기 중인 수료증이 없습니다.");
+    toast("대기 중인 수료증이 없습니다.");
     return;
   }
-  toast(`⚡ 미검증 수료증 ${waitList.length}건에 대한 AI 일괄 OCR 검증을 실행합니다...`);
   waitList.forEach(c => c.state = "scan");
-  renderEdu();
-
+  renderEducationTable();
   setTimeout(() => {
     waitList.forEach(c => {
       const v = validateCert(c);
       c.state = v.pass ? "pass" : "fail";
       c.reason = v.reason;
     });
-    renderEdu();
-    renderDash();
-    toast(`🎉 AI 일괄 검증 완료: 승인 및 반려 처리가 완료되었습니다.`);
-  }, 1800);
+    renderEducationTable();
+    renderDashboard();
+    toast(`AI 일괄 검증 ${waitList.length}건 처리 완료`);
+  }, 1400);
 }
 
 function sendCertRejectMail(index) {
   const c = certs[index];
   c.sent = true;
-  renderEdu();
+  renderEducationTable();
   mockMails.unshift({
     id: Date.now(),
     time: "10:05:00",
     to: `${c.n} (${c.d})`,
-    subject: `↩ [수료증 재제출 안내] "${DOC.name}" 반려 사유 확인`,
-    body: `${c.n} 님, 제출하신 수료증이 아래 사유로 반려되었습니다.\n\n- 반려 사유: ${c.reason}\n\n전용 제출 링크를 통해 올바른 파일을 다시 등록해 주시기 바랍니다.`,
-    badge: "수료증 반려"
+    subject: `↩ [수료증 재제출 요청] "${DOC.name}" 반려 안내`,
+    body: `${c.n} 님, 제출하신 수료증이 반려되었습니다. (사유: ${c.reason})\n올바른 파일로 재제출 바랍니다.`,
+    tag: "수료증 반려"
   });
   updateMailCount();
-  toast(`↩ ${c.n} 님에게 재제출 요청 메일을 발송했습니다.`);
+  toast(`${c.n} 님에게 재제출 요청 메일을 발송했습니다.`);
+}
+
+function sendIndividualAttAlert(name) {
+  toast(`🚨 ${name} 님에게 에스원 지문 재태그 요청 메일을 발송했습니다.`);
+  mockMails.unshift({
+    id: Date.now(),
+    time: "09:05:02",
+    to: `${name}`,
+    subject: `🚨 [긴급] 오늘 출근 에스원 지문이 인식되지 않았습니다!`,
+    body: `${name} 님, 09:05 기준 에스원 출근 기록이 확인되지 않았습니다. 1층 게이트 단말기에 재태그해 주세요.`,
+    tag: "에스원 근태"
+  });
+  updateMailCount();
+}
+
+function triggerAttendanceEmergencyNotice() {
+  const miss = att.filter(a => !a.in);
+  toast(`출근 미인식자 ${miss.length}명에게 에스원 긴급 재태그 요청을 발송했습니다.`);
 }
 
 function triggerDDayReminder() {
   const pend = emps.filter(e => getEduStateForEmp(e.n).k !== "ok");
-  toast(`⏰ [자동 D-Day 리마인더 가동] 미수료자 ${pend.length}명에게 기한 독촉 메일이 발송되었습니다.`);
+  toast(`미수료자 ${pend.length}명에게 D-Day 독촉 메일을 발송했습니다.`);
+}
+
+function simRetagAttendance(name) {
+  const target = att.find(x => x.n === name);
+  if (target) {
+    target.in = "09:07";
+    target.note = "09:07 에스원 재태그 완료";
+  }
+  if (name === "홍길동") {
+    myAttList[0].in = "09:07";
+    renderEmployeeViews();
+  }
+  renderAttendanceTable();
+  renderDashboard();
+  toast(`✔ ${name} 님 09:07 에스원 단말기 재태그 완료 ➔ 정상 인증 전환`);
+}
+
+function submitAttExcuse(idx) {
+  const r = prompt("소명 사유를 입력하세요 (예: 에스원 단말기 인식 오류, 외근 직출):");
+  if (r && r.trim()) {
+    excusedList[idx] = r.trim();
+    renderEmployeeViews();
+    toast("소명서가 근태 담당자에게 전송되었습니다.");
+  }
+}
+
+function handleCertUpload(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  $('empFilePreview').classList.remove('hidden');
+  $('previewName').textContent = f.name;
+  $('previewSize').textContent = `${(f.size/1024).toFixed(1)} KB`;
+  toast(`수료증 파일 [${f.name}] 첨부 완료`);
+}
+
+function submitAndVerifyCert() {
+  const btn = $('btnSubmitCertAction');
+  btn.disabled = true;
+  btn.textContent = "AI OCR 실시간 분석 중…";
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = "🚀 즉시 제출 및 AI 자동 검증";
+    $('receiptResult').innerHTML = `
+      <div class="p-4 bg-emerald-50 border border-emerald-100 rounded-xl space-y-2 text-emerald-900">
+        <div class="font-bold text-sm flex items-center gap-1.5 text-emerald-700">
+          <span>🎉</span> PASS · 수료 승인 완료
+        </div>
+        <div class="space-y-1 text-xs">
+          <div>성명: <b>홍길동 (일치 ✔)</b></div>
+          <div>과정: <b>${DOC.name} (일치 ✔)</b></div>
+          <div>일자: <b>${TODAY} (기한 내 ✔)</b></div>
+        </div>
+        <div class="text-[11px] text-emerald-600 mt-2">관리자 대시보드에 실시간 반영되었습니다.</div>
+      </div>
+    `;
+    myEduList[0].state = "ok";
+    myEduList[0].note = `${TODAY} 제출 · AI 자동 승인 완료`;
+    renderEmployeeViews();
+    renderEducationTable();
+    renderDashboard();
+    toast("수료증 제출 및 AI 자동 검증 승인 완료!");
+  }, 1200);
+}
+
+function selectCourseForSubmission(idx) {
+  $('empSelectCourse').value = idx;
+  switchTab('myedu');
 }
 
 function downloadFinalReport() {
-  let csv = "이름,부서,이메일,교육명,수료상태,비고\n";
+  let csv = "이름,부서,이메일,교육명,수료상태,기한\n";
   emps.forEach(e => {
     const st = getEduStateForEmp(e.n);
-    csv += `${e.n},${e.d},${e.email},${DOC.name},${st.label},기한: ${DOC.deadline}\n`;
+    csv += `${e.n},${e.d},${e.email},${DOC.name},${st.label},${DOC.deadline}\n`;
   });
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `교육수료_근태_최종집계_${TODAY}.csv`;
+  a.download = `GBSA_집계리포트_${TODAY}.csv`;
   a.click();
-  toast("📥 최종 결과물 집계 엑셀(.csv)이 다운로드되었습니다.");
+  toast("최종 집계 CSV 파일 다운로드 완료");
 }
 
 function downloadMagicLinksExcel() {
-  let csv = "사원번호,이름,부서,이메일,원클릭제출링크(MagicLink)\n";
+  let csv = "사원번호,이름,부서,이메일,MagicLink\n";
   emps.forEach((e, idx) => {
     csv += `EMP-${1000 + idx},${e.n},${e.d},${e.email},https://reminder.gbsa.kr/submit?token=${e.token}\n`;
   });
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `교육_개인별_MagicLink_명단_${TODAY}.csv`;
+  a.download = `GBSA_MAGIC_LINKS_${TODAY}.csv`;
   a.click();
-  toast("🔗 개인별 전용 링크 엑셀 명단이 다운로드되었습니다.");
+  toast("Magic Link 명단 CSV 다운로드 완료");
 }
 
 function downloadCertZip() {
-  toast("📦 검증 완료된 수료증 파일들이 ZIP 압축 파일(수료증취합_20261002.zip)로 다운로드되었습니다.");
+  toast("수료증 일괄 압축 ZIP 파일이 다운로드되었습니다.");
 }
 
-/* ================= EMPLOYEE UPLOAD & INSTANT OCR ================= */
-
-function handleCertUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  $('uploadPreview').style.display = "flex";
-  $('previewFileName').textContent = file.name;
-  $('previewFileSize').textContent = `${(file.size / 1024).toFixed(1)} KB · 파일 준비 완료`;
-  toast(`📄 수료증 파일 [${file.name}] 이 첨부되었습니다.`);
-}
-
-function submitAndVerifyCert() {
-  const courseIdx = $('empCourseSel').value;
-  const courseName = $('empCourseSel').options[courseIdx].text;
-  
-  $('btnSubmitCert').disabled = true;
-  $('btnSubmitCert').innerHTML = "⏳ AI OCR 실시간 분석 중…";
-
-  setTimeout(() => {
-    $('btnSubmitCert').disabled = false;
-    $('btnSubmitCert').innerHTML = "🚀 즉시 제출 및 AI 자동 검증";
-    
-    // Receipt UI Update
-    $('receiptBox').innerHTML = `
-      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:16px;text-align:left">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-size:22px">🎉</span>
-          <b style="color:#065f46;font-size:15px">수료증 즉시 제출 & 승인 완료!</b>
-        </div>
-        <table style="font-size:12px;margin-top:8px">
-          <tr><td style="color:#047857;padding:4px 0">제출자 성명:</td><td><b>홍길동 (일치 ✔)</b></td></tr>
-          <tr><td style="color:#047857;padding:4px 0">교육 과정명:</td><td><b>${DOC.name} (일치 ✔)</b></td></tr>
-          <tr><td style="color:#047857;padding:4px 0">이수 완료일:</td><td><b>${TODAY} (기한 내 ✔)</b></td></tr>
-          <tr><td style="color:#047857;padding:4px 0">판정 결과:</td><td><span class="badge b-ok">PASS 승인</span></td></tr>
-        </table>
-        <div style="margin-top:10px;font-size:11.5px;color:#047857">취합부서 담당자 대시보드에 실시간 자동 반영되었습니다.</div>
-      </div>
-    `;
-
-    myEduList[0].state = "ok";
-    myEduList[0].note = `${TODAY} 제출 · AI 자동 승인 완료`;
-    renderMyViews();
-    renderEdu();
-    renderDash();
-    toast("🎉 수료증 제출 및 AI 자동 검증이 성공적으로 완료되었습니다!");
-  }, 1400);
-}
-
-function selectCourseForEmp(idx) {
-  $('empCourseSel').value = idx;
-  $('certDropZone').scrollIntoView({ behavior: 'smooth' });
-}
-
-function submitAttExcuse(idx) {
-  const reason = prompt("소명 사유를 입력해주세요 (예: 1층 지문인식기 단말기 오류, 외근 직출)");
-  if (reason && reason.trim()) {
-    excusedList[idx] = reason.trim();
-    renderMyViews();
-    toast("소명 사유가 근태 담당자에게 전송되었습니다.");
-  }
-}
-
-/* ================= MAIL MODAL ================= */
+/* ================= MODAL: MAIL LIST ================= */
 function openMailModal() {
-  $('mailModal').classList.add('open');
+  $('mailModal').classList.remove('hidden');
+  $('mailModal').classList.add('flex');
   renderMailList();
 }
 function closeMailModal() {
-  $('mailModal').classList.remove('open');
+  $('mailModal').classList.add('hidden');
+  $('mailModal').classList.remove('flex');
 }
 function updateMailCount() {
   $('mailCount').textContent = mockMails.length;
 }
 function renderMailList() {
-  $('mailList').innerHTML = mockMails.map(m => `
-    <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span class="badge b-pri">${m.badge}</span>
-        <span style="font-size:11.5px;color:var(--mute)">${m.time}</span>
+  $('mailListContainer').innerHTML = mockMails.map(m => `
+    <div class="border border-slate-200 rounded-xl p-4 bg-white text-xs space-y-2 hover:border-slate-300 transition-all">
+      <div class="flex justify-between items-center">
+        <span class="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full text-[11px]">${m.tag}</span>
+        <span class="text-slate-400 font-mono text-[11px]">${m.time}</span>
       </div>
-      <div style="font-size:12px;color:var(--mute);margin-bottom:4px">수신: <b>${m.to}</b></div>
-      <b style="font-size:13.5px;color:var(--ink);display:block;margin-bottom:6px">${m.subject}</b>
-      <div style="font-size:12.5px;color:#334155;white-space:pre-line;line-height:1.6;background:#fff;padding:10px;border-radius:6px;border:1px solid #e2e8f0">${m.body}</div>
+      <div class="text-slate-500">수신: <b class="text-slate-900">${m.to}</b></div>
+      <div class="font-bold text-slate-900 text-sm">${m.subject}</div>
+      <div class="p-3 bg-slate-50 rounded-lg text-slate-600 whitespace-pre-line leading-relaxed font-sans">${m.body}</div>
     </div>
   `).join("");
 }
 
-/* ================= AUTH & NAVIGATION ================= */
+/* ================= NAVIGATION & ROLE SWITCH ================= */
+let currentRole = 'admin';
+
 const MENUS = {
   admin: [
-    ["dash", "📊 대시보드 총괄", "모니터링"],
-    ["att", "⏰ 근태 실시간 감시 엔진", "A모듈"],
-    ["edu", "🎓 교육 건 & 수료증 교차검증", "B모듈"]
+    { id: "dash", label: "대시보드 총괄", icon: `<svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>` },
+    { id: "att", label: "에스원 근태 실시간 관제", icon: `<svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>` },
+    { id: "edu", label: "교육 건 & 수료증 검증", icon: `<svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>` }
   ],
   user: [
-    ["myedu", "📤 수료증 원클릭 제출", "Magic Link"],
-    ["myatt", "⏰ 내 출퇴근 근태 현황", "기록/소명"]
+    { id: "myedu", label: "수료증 간편 제출", icon: `<svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>` },
+    { id: "myatt", label: "내 에스원 출퇴근 현황", icon: `<svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>` }
   ]
 };
 
-function showTab(id) {
-  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x.dataset.t === id));
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === id));
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+  const target = $('pane-' + tabId);
+  if (target) target.classList.add('active');
+
+  // Sidebar link highlight
+  document.querySelectorAll('.sidebar-link').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabId);
+  });
+
+  // Sub Tab highlight
+  document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabId);
+  });
 }
 
-function login(role) {
-  $('login').style.display = "none";
-  $('app').style.display = "flex";
-  $('who').textContent = role === "admin" ? "취합부서(관리자)" : "임직원(제출자)";
-  $('welcome').textContent = role === "admin" ? "관리자님 환영합니다" : "홍길동님 환영합니다";
-  
-  $('nav').innerHTML = `
-    <div class="nav-sec">${role === 'admin' ? '취합부서 관리 메뉴' : '임직원 셀프 서비스'}</div>
-    ${MENUS[role].map(m => `<button data-t="${m[0]}">${m[1]}<span class="tag">${m[2]}</span></button>`).join("")}
-  `;
-  
-  $('nav').querySelectorAll('button').forEach(b => b.onclick = () => showTab(b.dataset.t));
-  showTab(MENUS[role][0][0]);
+function initNav(role) {
+  currentRole = role;
+  $('userAvatar').textContent = role === 'admin' ? 'A' : 'H';
+  $('sidebarUserName').textContent = role === 'admin' ? '취합부서 관리자' : '홍길동';
+  $('sidebarUserEmail').textContent = role === 'admin' ? 'admin@gbsa.kr' : 'hong@company.kr';
+
+  const menuItems = MENUS[role];
+  $('sidebarNav').innerHTML = menuItems.map((m, idx) => `
+    <button data-tab="${m.id}" onclick="switchTab('${m.id}')" class="sidebar-link w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors ${idx === 0 ? 'active' : ''}">
+      ${m.icon}
+      <span>${m.label}</span>
+    </button>
+  `).join("");
+
+  // Update top sub tabs
+  $('subTabBar').innerHTML = menuItems.map((m, idx) => `
+    <button onclick="switchTab('${m.id}')" data-tab="${m.id}" class="sub-tab-btn py-3 border-b-2 border-transparent hover:text-slate-800 transition-colors ${idx === 0 ? 'active' : ''}">
+      ${m.label}
+    </button>
+  `).join("");
+
+  switchTab(menuItems[0].id);
+}
+
+function toggleRoleDropdown() {
+  logout();
 }
 
 function logout() {
-  $('app').style.display = "none";
-  $('login').style.display = "flex";
+  const nextRole = currentRole === 'admin' ? 'user' : 'admin';
+  initNav(nextRole);
+  toast(`역할 변경: [${nextRole === 'admin' ? '취합부서 관리자' : '임직원 (홍길동)'}] 모드`);
 }
 
-// Bulk Reminder Button
-$('bulk').onclick = () => {
-  const pend = emps.filter(e => getEduStateForEmp(e.n).k !== "ok");
-  toast(`📨 미수료자 ${pend.length}명에게 "${DOC.name}" 원클릭 제출 링크 및 독촉 메일을 발송했습니다.`);
-};
-
 /* ================= SUPABASE DB INTEGRATION ================= */
-const SUPABASE_URL = "";   // 예: "https://xxxx.supabase.co"
-const SUPABASE_KEY = "";   // 예: "eyJhbGciOi..."
+const SUPABASE_URL = "";
+const SUPABASE_KEY = "";
 const sb = (SUPABASE_URL && SUPABASE_KEY && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const hhmm = t => {
@@ -1146,28 +1189,18 @@ const hhmm = t => {
   return h.padStart(2, "0") + ":" + m;
 };
 
-function setSource(txt, ok) {
-  const e = $('dataSrc');
-  if (e) {
-    e.textContent = txt;
-    e.style.color = ok ? 'var(--ok)' : 'var(--warn)';
-  }
-}
-
 async function fetchAttendanceData() {
   if (!sb) {
-    setSource("● 모의 데이터 (Supabase 미설정)", false);
+    $('dbSourceText').textContent = "DB: 로컬 모의 데이터";
     return;
   }
-  setSource("● Supabase 불러오는 중…", false);
+  $('dbSourceText').textContent = "DB: Supabase 연동 중…";
   const { data, error } = await sb.from("attendance").select("*").order("tag_date").order("tag_time").limit(5000);
   if (error || !data || !data.length) {
-    console.error(error);
-    setSource("● Supabase 연결 실패 · 모의 데이터 표시", false);
+    $('dbSourceText').textContent = "DB: 로컬 모의 데이터";
     return;
   }
   
-  // Update attendance data from Supabase
   const empMap = {}, logMap = {};
   data.forEach(r => {
     empMap[r.emp_id] = { n: r.emp_name, d: r.dept_name };
@@ -1178,32 +1211,33 @@ async function fetchAttendanceData() {
     else if (r.event_type === "CHECK_OUT") { if (!x.out || t > x.out) x.out = t; }
   });
 
-  const updatedAtt = [];
+  const updated = [];
   Object.keys(empMap).forEach(id => {
     const x = logMap[id + "|" + TODAY] || { in: "", out: "" };
-    updatedAtt.push({
+    updated.push({
       n: empMap[id].n,
       d: empMap[id].d,
       std: "09:00",
       in: x.in,
       out: x.out,
-      note: !x.in ? "09:05 지문 미인식" : "정상 출근"
+      note: !x.in ? "09:05 에스원 미인식" : "에스원 정상 인증"
     });
   });
 
-  if (updatedAtt.length > 0) {
-    att = updatedAtt;
-    renderDash();
-    renderAtt();
+  if (updated.length > 0) {
+    att = updated;
+    renderDashboard();
+    renderAttendanceTable();
   }
-  setSource("● Supabase 연동 (" + data.length + "건)", true);
+  $('dbSourceText').textContent = `DB: Supabase (${data.length}건)`;
 }
 
-// Initialize
-renderDash();
-renderAtt();
-renderEdu();
-renderMyViews();
+// Global App Initialization
+initNav('admin');
+renderDashboard();
+renderAttendanceTable();
+renderEducationTable();
+renderEmployeeViews();
 updateMailCount();
 fetchAttendanceData();
 </script>

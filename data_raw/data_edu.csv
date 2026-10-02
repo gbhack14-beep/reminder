@@ -1,0 +1,8 @@
+﻿emp_id,emp_name,dept_name,edu_course,target_flag,submission_status,ocr_verified,file_path,due_date
+GBSA2018012,안송이,AI산업팀,2026년 공공기관 법정의무교육(개인정보보호 및 정보보안),Y,제출완료,Y,uploads/education/2026_GBSA2018012_privacy.pdf,2026-10-31
+GBSA2018012,안송이,AI산업팀,2026년 직장 내 괴롭힘 및 성희롱 예방교육,Y,제출완료,Y,uploads/education/2026_GBSA2018012_harassment.pdf,2026-10-31
+GBSA2018012,안송이,AI산업팀,2026년 공공행정 생성형 AI 활용 및 프롬프트 실무,Y,제출완료,Y,uploads/education/2026_GBSA2018012_genai.pdf,2026-09-30
+GBSA2019024,김민준,기획조정실,2026년 공직자 청렴윤리 및 이해충돌방지 실무,Y,제출완료,Y,uploads/education/2026_GBSA2019024_integrity.pdf,2026-10-31
+GBSA2019024,김민준,기획조정실,2026년 공공기관 법정의무교육(개인정보보호 및 정보보안),Y,미제출,해당없음,,2026-10-31
+GBSA2020045,이서연,인사총무팀,2026년 직장 내 괴롭힘 및 성희롱 예방교육,Y,제출완료,Y,uploads/education/2026_GBSA2020045_harassment.pdf,2026-10-31
+GBSA2020045,이서연,인사총무팀,2026년 산업안전보건 정기 안전교육(3분기),Y,확인중,N,uploads/education/2026_GBSA2020045_safety_scan.pdf,2026-09-30

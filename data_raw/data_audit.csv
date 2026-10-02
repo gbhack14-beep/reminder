@@ -1,0 +1,8 @@
+﻿doc_no,audit_type,requesting_agency,lead_dept,task_title,request_date,target_dept,assignee_name,assignee_emp_id,official_due_date,form_template_url,initial_file_uploaded,raw_stage
+DOC-AUDIT-2026-0001,경영기획/행정점검,경기도 기획조정실,기획조정실,2027년도 주요업무계획 수립 부서별 신규사업 수요조사,2026-09-12,AI산업팀,안송이,GBSA2018012,2026-09-30,https://portal.gbsa.or.kr/forms/req_business_plan_2027.xlsx,Y,SUPPLEMENT_REQUESTED
+DOC-AUDIT-2026-0002,재정회계점검,GBSA 예산팀,예산팀,2026년 3분기 예산집행 실적 및 4분기 불용예상액 점검표,2026-09-11,AI산업팀,안송이,GBSA2018012,2026-09-25,https://portal.gbsa.or.kr/forms/req_budget_q3_check.xlsx,Y,COMPLETED
+DOC-AUDIT-2026-0003,하반기 자체 일상감사,GBSA 감사실,감사실,2026년도 하반기 자체 일상감사 이행결과표 제출,2026-08-26,기획조정실,김민준,GBSA2019024,2026-09-15,https://portal.gbsa.or.kr/forms/req_audit_2026_h2.xlsx,N,OVERDUE
+DOC-AUDIT-2026-0005,정보보안 실태점검,국가정보원 지부,정보화추진팀,정품 소프트웨어(SW) 라이선스 정기 실태점검표,2026-09-02,인사총무팀,이서연,GBSA2020045,2026-09-20,https://portal.gbsa.or.kr/forms/req_sw_license_audit.xlsx,Y,COMPLETED
+DOC-AUDIT-2026-0018,하반기 자체 일상감사,GBSA 감사실,기획조정실,부서별 연구용역 사후관리 및 평가결과서,2026-08-29,AI산업팀,안송이,GBSA2018012,2026-09-17,https://portal.gbsa.or.kr/forms/req_research_eval.xlsx,N,OVERDUE
+DOC-AUDIT-2026-0024,하반기 자체 일상감사,GBSA 감사실,감사실,인사위원회 심의안건 사전 자체감사 의견서,2026-09-07,인사총무팀,이서연,GBSA2020045,2026-09-21,https://portal.gbsa.or.kr/forms/req_hr_audit_opinion.xlsx,Y,COMPLETED
+DOC-AUDIT-2026-0030,경영혁신과제,경기도 기획조정실,기획조정실,공공기관 조직문화 개선 캠페인 이행결과서,2026-09-29,인사총무팀,이서연,GBSA2020045,2026-10-15,https://portal.gbsa.or.kr/forms/req_org_culture_survey.xlsx,N,ASSIGNED
